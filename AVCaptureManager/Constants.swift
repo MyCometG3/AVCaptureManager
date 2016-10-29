@@ -62,8 +62,8 @@ public enum VideoStyle : String {
         // (https://developer.apple.com/library/prerelease/content/technotes/tn2162/_index.html)
         
         var videoOutputSettings: [String:Any] = [:]
-        var encodedWidth: Float,    encodedHeight: Float
-        var visibleWidth: Float,    visibleHeight: Float
+        var encodedWidth: Double,   encodedHeight: Double
+        var visibleWidth: Double,   visibleHeight: Double
         var aspectHorizontal:Int,   aspectVertical: Int
         
         switch self {
@@ -117,11 +117,11 @@ public enum VideoStyle : String {
             aspectHorizontal = 40;  aspectVertical = 33
         case .SD_625_13_5MHz_4_3:   // 625-line 13.5MHz Sampling 4:3
             encodedWidth = 720;     encodedHeight = 576
-            visibleWidth = 768*(54.0/59.0); visibleHeight = 576
+            visibleWidth = 768.0*(54.0/59.0); visibleHeight = 576
             aspectHorizontal = 59;  aspectVertical = 54
         case .SD_625_13_5MHz_16_9:  // 625-line 13.5MHz Sampling 16:9
             encodedWidth = 720;     encodedHeight = 576
-            visibleWidth = 768*(54.0/59.0); visibleHeight = 576
+            visibleWidth = 768.0*(54.0/59.0); visibleHeight = 576
             aspectHorizontal = 118;  aspectVertical = 81
         case .HDV_HDCAM:            // HDV / HDCAM 16:9
             encodedWidth = 1440;    encodedHeight = 1080
