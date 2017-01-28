@@ -92,10 +92,10 @@ You have to restart session always in the following scenario:
 
 #### Development environment
 - MacOS X 10.11.6 El Capitan
-- Xcode 8.0
-- Swift 3.0
+- Xcode 8.2.1
+- Swift 3.0.2
 
 #### License
 - 3-clause BSD license
 
-Copyright © 2016年 MyCometG3. All rights reserved.
+Copyright © 2016-2017年 MyCometG3. All rights reserved.
