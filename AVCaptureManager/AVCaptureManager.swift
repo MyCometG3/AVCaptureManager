@@ -969,7 +969,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                             // In case of faulty state
                             let statusStr = self.descriptionForStatus(avAssetWriter.status)
                             print("ERROR: AVAssetWriter.finishWritingWithCompletionHandler() = \(statusStr)")
-                            print("ERROR: \(avAssetWriter.error)")
+                            print("ERROR: \(avAssetWriter.error as Optional)")
                         }
                         
                         // Reset CMTime values
@@ -1668,16 +1668,16 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     
     open func listDevice() {
         let deviceInfoMuxed = devicesMuxed()
-        print("AVMediaTypeMuxed : count = \(deviceInfoMuxed?.count)")
-        print(": \"\(deviceInfoMuxed))")
+        print("AVMediaTypeMuxed : count = \(deviceInfoMuxed?.count as Optional)")
+        print(": \"\(deviceInfoMuxed as Optional))")
         
         let deviceInfoVideo = devicesVideo()
-        print("AVMediaTypeVideo : count = \(deviceInfoVideo?.count)")
-        print(": \"\(deviceInfoVideo))")
+        print("AVMediaTypeVideo : count = \(deviceInfoVideo?.count as Optional)")
+        print(": \"\(deviceInfoVideo as Optional))")
         
         let deviceInfoAudio = devicesAudio()
-        print("AVMediaTypeAudio : count = \(deviceInfoAudio?.count)")
-        print(": \"\(deviceInfoAudio))")
+        print("AVMediaTypeAudio : count = \(deviceInfoAudio?.count as Optional)")
+        print(": \"\(deviceInfoAudio as Optional))")
         
         print("")
     }
@@ -1733,7 +1733,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 let mediaType = (format as AnyObject).mediaType!
                 print(": mediaType = \((mediaType))")
                 let videoSupportedFrameRateRanges = (format as AnyObject).videoSupportedFrameRateRanges
-                print(": videoSupportedFrameRateRanges = \(videoSupportedFrameRateRanges)")
+                print(": videoSupportedFrameRateRanges = \(videoSupportedFrameRateRanges as Optional)")
                 let description : CMFormatDescription = (format as AnyObject).formatDescription
                 print(": description = \(description)")
                 
@@ -1742,7 +1742,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 print(": \"\(mediaTypeString)\", \"\(mediaSubTypeString)\"")
                 
                 let extensions = CMFormatDescriptionGetExtensions(description)
-                print(": \(extensions)")
+                print(": \(extensions as Optional)")
                 
                 //var size = 0
                 //let rect = CMVideoFormatDescriptionGetCleanAperture(description, true)
@@ -1782,7 +1782,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 print(": \"\(mediaTypeString)\", \"\(mediaSubTypeString)\"")
                 
                 let extensions = CMFormatDescriptionGetExtensions(description)
-                print(": \(extensions)")
+                print(": \(extensions as Optional)")
                 
                 //var size = 0
                 //let audioChannelLayout = CMAudioFormatDescriptionGetChannelLayout(description, &size)
@@ -1822,11 +1822,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             #if true
                 // : availableCodecTypes = [avc1, jpeg]
                 let codecTypes = captureVideoDataOutput.availableVideoCodecTypes
-                print(": availableCodecTypes = \(codecTypes)") // String array
+                print(": availableCodecTypes = \(codecTypes as Optional)") // String array
                 
                 // : availableVideoCVPixelFormatTypes = [846624121, 2037741171, 875704438, 875704422, 32, 1111970369]
                 let pixfmtTypes = captureVideoDataOutput.availableVideoCVPixelFormatTypes
-                print(": availableVideoCVPixelFormatTypes = \(pixfmtTypes) in UInt32 array") // UInt32 array
+                print(": availableVideoCVPixelFormatTypes = \(pixfmtTypes as Optional) in UInt32 array") // UInt32 array
                 
                 // : availableVideoCVPixelFormatTypes = ["2vuy", "yuvs", "420v", "420f", "    ", "BGRA"]
                 var pixfmtTypesStr :[String] = []
