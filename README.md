@@ -23,7 +23,7 @@ including A/V mixed connection like DV.
     // Set before openSession() or openSessionForUniqueID()
     open var useMuxed : Bool = false
     open var usePreset : Bool = false
-    open var exportPreset : String = AVAssetExportPresetHighestQuality
+    open var exportPreset : AVCaptureSession.Preset = .high
 
     // Start session
     open func openSession() -> Bool {...}
@@ -35,6 +35,8 @@ including A/V mixed connection like DV.
 
     // Wait Source encoded pixel size is ready to proceed
     open var videoSize : CGSize? = nil
+
+    TODO: Current version does not fill videoSize if usePreset = true.
 
 ###### 3. Set parameters for recording then start recording
 
@@ -57,7 +59,7 @@ including A/V mixed connection like DV.
 
 ###### 4. Stop recording
 
-    // Finnish writing
+    // Finish writing
     open func stopRecording() {...}
 
     // Query recording duration
@@ -91,9 +93,9 @@ You have to restart session always in the following scenario:
 - To change devices for inputs
 
 #### Development environment
-- MacOS X 10.11.6 El Capitan
-- Xcode 8.2.1
-- Swift 3.0.2
+- MacOS X 10.12.6 Sierra
+- Xcode 9.1.0
+- Swift 4.0.2
 
 #### License
 - 3-clause BSD license
