@@ -33,7 +33,6 @@ import Cocoa
 import AVFoundation
 import VideoToolbox
 
-@objc(AVCaptureManager)
 open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
     
@@ -95,7 +94,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     // Set before openSession()
     open var useMuxed : Bool = false
     open var usePreset : Bool = false
-    open var exportPreset : String = AVAssetExportPresetHighestQuality
+    open var exportPreset : AVCaptureSession.Preset = .high
     
     // Set before openSession() - usePreset=false
     open var sampleDurationVideo : CMTime? = nil
@@ -330,7 +329,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         if let captureMovieFileOutput = captureMovieFileOutput {
             // Using AVCaptureMovieFileOutput
             // Start writing
-            captureMovieFileOutput.startRecording(toOutputFileURL: url, recordingDelegate: self)
+            captureMovieFileOutput.startRecording(to: url, recordingDelegate: self)
             
             // mark as Recording
             isWriting = true
@@ -396,7 +395,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                     captureDeviceVideo = captureDevice
                     captureDeviceAudio = nil
                 } else {
-                    let captureDevice : AVCaptureDevice? = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeMuxed)
+                    let captureDevice : AVCaptureDevice? = AVCaptureDevice.default(for: AVMediaType.muxed)
                     captureDeviceVideo = captureDevice
                     captureDeviceAudio = nil
                 }
@@ -405,12 +404,12 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 if let uniqueIDvideo = uniqueIDvideo {
                     captureDeviceVideo = AVCaptureDevice(uniqueID: uniqueIDvideo)
                 } else {
-                    captureDeviceVideo = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeVideo)
+                    captureDeviceVideo = AVCaptureDevice.default(for: AVMediaType.video)
                 }
                 if let uniqueIDaudio = uniqueIDaudio {
                     captureDeviceAudio = AVCaptureDevice(uniqueID: uniqueIDaudio)
                 } else {
-                    captureDeviceAudio = AVCaptureDevice.defaultDevice(withMediaType: AVMediaTypeAudio)
+                    captureDeviceAudio = AVCaptureDevice.default(for: AVMediaType.audio)
                 }
             }
             
@@ -501,13 +500,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         // For video; Choose larger format, and fixed sample duration if requested
         if let captureDeviceVideo = captureDeviceVideo {
             var bestPixels: Int32 = 0
-            var bestFormat: AVCaptureDeviceFormat? = nil
+            var bestFormat: AVCaptureDevice.Format? = nil
             
-            let deviceFormats = captureDeviceVideo.formats as! [AVCaptureDeviceFormat]
+            let deviceFormats = captureDeviceVideo.formats 
             for format in deviceFormats {
                 var betterOrSame = false
                 
-                if let formatDescription = format.formatDescription {
+                do {
+                    let formatDescription = format.formatDescription
                     let dimmensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
                     let pixels = dimmensions.width * dimmensions.height
                     if pixels >= bestPixels {
@@ -519,7 +519,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 if let sampleDurationVideo = sampleDurationVideo {
                     var supported = false
                     
-                    let rangeArray = format.videoSupportedFrameRateRanges as! [AVFrameRateRange]
+                    let rangeArray = format.videoSupportedFrameRateRanges
                     for range in rangeArray {
                         let requested = CMTimeGetSeconds(sampleDurationVideo)
                         let max = CMTimeGetSeconds(range.maxFrameDuration)
@@ -568,20 +568,20 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private func chooseAudioDeviceFormat() -> Bool {
         // For audio; Choose higher sample rate and multi channel
         if let captureDeviceAudio = captureDeviceAudio {
-            var bestFormat: AVCaptureDeviceFormat? = nil
+            var bestFormat: AVCaptureDevice.Format? = nil
             var bestRate: Double = 0.0
             var bestChannelCount: AVAudioChannelCount = 0
             var bestChannelLayoutData: NSData? = nil
             var bestBitsPerChannel: UInt32 = 0
             
-            let deviceFormats = captureDeviceAudio.formats as! [AVCaptureDeviceFormat]
+            let deviceFormats = captureDeviceAudio.formats 
             for deviceFormat in deviceFormats {
                 // Get AudioStreamBasicDescription,  and AVAudioFormat/AudioChannelLayout
                 var avaf: AVAudioFormat? = nil
                 var aclData: NSData? = nil
                 var asbd: AudioStreamBasicDescription? = nil
-                if  let audioFormatDescription = deviceFormat.formatDescription,
-                    let asbd_p = CMAudioFormatDescriptionGetStreamBasicDescription(audioFormatDescription)
+                let audioFormatDescription = deviceFormat.formatDescription
+                if let asbd_p = CMAudioFormatDescriptionGetStreamBasicDescription(audioFormatDescription)
                 {
                     asbd = asbd_p.pointee
                     
@@ -726,7 +726,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         return false
     }
     
-    private func addMovieFileOutput(_ preset: String) -> Bool {
+    private func addMovieFileOutput(_ preset: AVCaptureSession.Preset) -> Bool {
         if let captureSession = captureSession {
             if captureSession.canSetSessionPreset(preset) {
                 //
@@ -829,23 +829,23 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         _duration = 0.0
         
         // Create AVAssetWriter for QuickTime Movie
-        avAssetWriter = try? AVAssetWriter.init(outputURL: fileUrl, fileType: AVFileTypeQuickTimeMovie)
+        avAssetWriter = try? AVAssetWriter.init(outputURL: fileUrl, fileType: AVFileType.mov)
         
         /* ============================================ */
         
         if let avAssetWriter = avAssetWriter {
             if encodeVideo == false {
                 // Create AVAssetWriterInput for Video (Passthru)
-                avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaTypeVideo,
+                avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaType.video,
                                                              outputSettings: nil)
             } else {
                 // Create OutputSettings for Video (Compress)
                 let videoOutputSettings : [String:Any] = createOutputSettingsVideo()
                 
                 // Validate settings for Video
-                if avAssetWriter.canApply(outputSettings: videoOutputSettings, forMediaType: AVMediaTypeVideo) {
+                if avAssetWriter.canApply(outputSettings: videoOutputSettings, forMediaType: AVMediaType.video) {
                     // Create AVAssetWriterInput for Video (Compress)
-                    avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaTypeVideo,
+                    avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaType.video,
                                                                  outputSettings: videoOutputSettings)
                 } else {
                     print("ERROR: videoOutputSettings is not OK")
@@ -862,16 +862,16 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             if encodeAudio == false {
                 // Create AVAssetWriterInput for Audio (Passthru)
-                avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaTypeAudio,
+                avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaType.audio,
                                                              outputSettings: nil)
             } else {
                 // Create OutputSettings for Audio (Compress)
                 let audioOutputSettings : [String:Any] = createOutputSettingsAudio()
                 
                 // Validate settings for Audio
-                if avAssetWriter.canApply(outputSettings: audioOutputSettings, forMediaType: AVMediaTypeAudio) {
+                if avAssetWriter.canApply(outputSettings: audioOutputSettings, forMediaType: AVMediaType.audio) {
                     // Create AVAssetWriterInput for Audio (Compress)
-                    avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaTypeAudio,
+                    avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaType.audio,
                                                                  outputSettings: audioOutputSettings)
                 } else {
                     print("ERROR: audioOutputSettings is not OK")
@@ -883,12 +883,12 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             if timeCodeFormatType != nil && smpteReady {
                 // Create AVAssetWriterInput for Timecode (SMPTE)
-                avAssetWriterInputTimeCode = AVAssetWriterInput(mediaType: AVMediaTypeTimecode,
+                avAssetWriterInputTimeCode = AVAssetWriterInput(mediaType: AVMediaType.timecode,
                                                                 outputSettings: nil)
                 
                 if let inputVideo = avAssetWriterInputVideo, let inputTimeCode = avAssetWriterInputTimeCode {
                     inputVideo.addTrackAssociation(withTrackOf: inputTimeCode,
-                                                                   type: AVTrackAssociationTypeTimecode)
+                                                   type: AVAssetTrack.AssociationType.timecode.rawValue)
                 }
             }
             
@@ -1081,24 +1081,24 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     /* ======================================================================================== */
     
     // AVCaptureFileOutputRecordingDelegate Protocol
-    open func capture(_ captureOutput: AVCaptureFileOutput!,
-                      didStartRecordingToOutputFileAt fileURL: URL!,
-                      fromConnections connections: [Any]!) {
+    open func fileOutput(_ captureOutput: AVCaptureFileOutput,
+                      didStartRecordingTo fileURL: URL,
+                      from connections: [AVCaptureConnection]) {
         // print("NOTICE: Capture started.")
     }
     
     // AVCaptureFileOutputRecordingDelegate Protocol
-    open func capture(_ captureOutput: AVCaptureFileOutput!,
-                      didFinishRecordingToOutputFileAt outputFileURL: URL!,
-                      fromConnections connections: [Any]!, error: Error!) {
+    open func fileOutput(_ captureOutput: AVCaptureFileOutput,
+                      didFinishRecordingTo outputFileURL: URL,
+                      from connections: [AVCaptureConnection], error: Error?) {
         // print("NOTICE: Capture stopped.")
     }
     
     // AVCaptureVideoDataOutputSampleBufferDelegate Protocol
     // AVCaptureAudioDataOutputSampleBufferDelegate Protocol
-    open func captureOutput(_ captureOutput: AVCaptureOutput!,
-                            didOutputSampleBuffer sampleBuffer: CMSampleBuffer!,
-                            from connection: AVCaptureConnection!) {
+    open func captureOutput(_ captureOutput: AVCaptureOutput,
+                            didOutput sampleBuffer: CMSampleBuffer,
+                            from connection: AVCaptureConnection) {
         //
         let recording = self.isWriting
         let forAudio = (captureOutput == self.captureAudioDataOutput)
@@ -1641,11 +1641,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         return String(cString: bytes)
     }
     
-    private func deviceInfoArray(mediaType type: String!) -> [Any] {
-        let deviceArray = AVCaptureDevice.devices(withMediaType: type) as! [AVCaptureDevice]!
+    private func deviceInfoArray(mediaType type: AVMediaType) -> [Any] {
+        let deviceArray = AVCaptureDevice.devices(for: type)
         
         var deviceInfoArray = [Any]()
-        for device in deviceArray! {
+        for device in deviceArray {
             let deviceInfo: [String:Any] = [
                 "uniqueID" : device.uniqueID,
                 "modelID" : device.modelID,
@@ -1683,17 +1683,17 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     }
     
     open func devicesMuxed() -> [Any]! {
-        let deviceArrayInfoMuxed = deviceInfoArray(mediaType: AVMediaTypeMuxed)
+        let deviceArrayInfoMuxed = deviceInfoArray(mediaType: AVMediaType.muxed)
         return deviceArrayInfoMuxed
     }
     
     open func devicesVideo() -> [Any]! {
-        let deviceArrayInfoVideo = deviceInfoArray(mediaType: AVMediaTypeVideo)
+        let deviceArrayInfoVideo = deviceInfoArray(mediaType: AVMediaType.video)
         return deviceArrayInfoVideo
     }
     
     open func devicesAudio() -> [Any]! {
-        let deviceArrayInfoAudio = deviceInfoArray(mediaType: AVMediaTypeAudio)
+        let deviceArrayInfoAudio = deviceInfoArray(mediaType: AVMediaType.audio)
         return deviceArrayInfoAudio
     }
     
@@ -1721,16 +1721,16 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             print("captureDeviceVideo")
             
             if let captureDeviceInputVideo = captureDeviceInputVideo {
-                for item in (captureDeviceInputVideo.ports)! {
+                for item in (captureDeviceInputVideo.ports) {
                     print(": port = \(item)")
                 }
             }
             
             for format in captureDeviceVideo.formats {
-                let supportPresetHigh = captureDeviceVideo.supportsAVCaptureSessionPreset(AVCaptureSessionPresetHigh)
+                let supportPresetHigh = captureDeviceVideo.supportsSessionPreset(AVCaptureSession.Preset.high)
                 print(": supportPresetHigh = \(supportPresetHigh)")
                 
-                let mediaType = (format as AnyObject).mediaType!
+                let mediaType = format.mediaType
                 print(": mediaType = \((mediaType))")
                 let videoSupportedFrameRateRanges = (format as AnyObject).videoSupportedFrameRateRanges
                 print(": videoSupportedFrameRateRanges = \(videoSupportedFrameRateRanges as Optional)")
@@ -1763,16 +1763,16 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             print("captureDeviceAudio")
             
             if let captureDeviceInputAudio = captureDeviceInputAudio {
-                for item in (captureDeviceInputAudio.ports)! {
+                for item in (captureDeviceInputAudio.ports) {
                     print(": port = \(item)")
                 }
             }
             
             for format in captureDeviceAudio.formats {
-                let supportPresetHigh = captureDeviceAudio.supportsAVCaptureSessionPreset(AVCaptureSessionPresetHigh)
+                let supportPresetHigh = captureDeviceAudio.supportsSessionPreset(AVCaptureSession.Preset.high)
                 print(": supportPresetHigh = \(supportPresetHigh)")
                 
-                let mediaType = (format as AnyObject).mediaType!
+                let mediaType = format.mediaType
                 print(": mediaType = \((mediaType))")
                 let description : CMFormatDescription = (format as AnyObject).formatDescription
                 print(": description = \(description)")
@@ -1853,5 +1853,20 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             print("captureAudioDataOutput is not ready.")
             print("")
         }
+    }
+}
+
+extension AVCaptureVideoDataOutput {
+    // Swift header bug?
+    // https://github.com/apple/swift/blob/master/stdlib/public/SDK/AVFoundation/AVCaptureVideoDataOutput.swift
+    
+    @nonobjc
+    public var availableVideoCVPixelFormatTypes :[Any]! {
+        return __availableVideoCVPixelFormatTypes
+    }
+    
+    @nonobjc
+    public var availableVideoPixelFormatTypes: [OSType] {
+        return __availableVideoCVPixelFormatTypes.map { $0.uint32Value } as [OSType]
     }
 }

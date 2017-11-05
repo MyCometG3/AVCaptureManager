@@ -37,7 +37,6 @@ import CoreVideo
 import CoreMedia
 import VideoToolbox
 
-@objc(VideoDecompressor)
 class VideoDecompressor : NSObject {
     /* ======================================================================================== */
     // MARK: - internal variables
@@ -197,7 +196,7 @@ class VideoDecompressor : NSObject {
                     temporalProcessing
                         ? [._EnableAsynchronousDecompression, ._EnableTemporalProcessing]
                         : [._EnableAsynchronousDecompression])
-                var infoFlagsOut: VTDecodeInfoFlags = VTDecodeInfoFlags.init(rawValue:.allZeros)
+                var infoFlagsOut: VTDecodeInfoFlags = VTDecodeInfoFlags(rawValue: 0)
                 
                 // Extract attachment from source SampleBuffer
                 let propagate = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
