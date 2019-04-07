@@ -90,8 +90,8 @@ class VideoDecompressor : NSObject {
         if let formatDescription = formatDescription {
             // VTVideoDecoderSpecification
             let decoderSpecification: [NSString: Any] = [
-                kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder: kCFBooleanTrue,
-                kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder: kCFBooleanFalse
+                kVTVideoDecoderSpecification_EnableHardwareAcceleratedVideoDecoder: kCFBooleanTrue!,
+                kVTVideoDecoderSpecification_RequireHardwareAcceleratedVideoDecoder: kCFBooleanFalse!
             ]
             
             // Prepare default attributes

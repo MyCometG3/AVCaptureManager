@@ -1001,8 +1001,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         
         // video hardware encoder
         let encoderSpecification: [NSString: Any] = [
-            kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder : kCFBooleanTrue,
-            kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder : kCFBooleanFalse
+            kVTVideoEncoderSpecification_EnableHardwareAcceleratedVideoEncoder : kCFBooleanTrue!,
+            kVTVideoEncoderSpecification_RequireHardwareAcceleratedVideoEncoder : kCFBooleanFalse!
         ]
         videoOutputSettings[AVVideoEncoderSpecificationKey] = encoderSpecification
         
