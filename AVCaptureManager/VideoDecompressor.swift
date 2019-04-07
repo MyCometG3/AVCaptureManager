@@ -108,12 +108,12 @@ class VideoDecompressor : NSObject {
             
             // Create VTDecompressionSession
             var valid: OSStatus = noErr
-            valid = VTDecompressionSessionCreate(kCFAllocatorDefault,
-                                                 formatDescription,
-                                                 decoderSpecification as CFDictionary?,
-                                                 defaultAttr as CFDictionary?,
-                                                 nil,
-                                                 &session)
+            valid = VTDecompressionSessionCreate(allocator: kCFAllocatorDefault,
+                                                 formatDescription: formatDescription,
+                                                 decoderSpecification: decoderSpecification as CFDictionary?,
+                                                 imageBufferAttributes: defaultAttr as CFDictionary?,
+                                                 outputCallback: nil,
+                                                 decompressionSessionOut: &session)
             if valid == noErr {
                 // Ready to use
                 ready = true
@@ -122,15 +122,15 @@ class VideoDecompressor : NSObject {
                 if doDeinterlace == true, let session = session {
                     // Query available supported property keys of the decoder
                     var support: CFDictionary? = nil
-                    let result0: OSStatus = VTSessionCopySupportedPropertyDictionary(session, &support)
+                    let result0: OSStatus = VTSessionCopySupportedPropertyDictionary(session, supportedPropertyDictionaryOut: &support)
                     
                     if result0 == noErr, let support = support {
                         // FieldMode_DeinterlaceFields
                         if CFDictionaryContainsKey(support, Unmanaged.passUnretained(kVTDecompressionPropertyKey_FieldMode).toOpaque()) {
                             // Ready to deinterlace fields
                             let result1 = VTSessionSetProperty(session,
-                                                           kVTDecompressionPropertyKey_FieldMode,
-                                                           kVTDecompressionProperty_FieldMode_DeinterlaceFields)
+                                                               key: kVTDecompressionPropertyKey_FieldMode,
+                                                               value: kVTDecompressionProperty_FieldMode_DeinterlaceFields)
                             if result1 == noErr {
                                 // Decoder supports deinterlace fields feature.
                                 // Deinterlaced decodring is enabled now.
@@ -146,8 +146,8 @@ class VideoDecompressor : NSObject {
                         if CFDictionaryContainsKey(support, Unmanaged.passUnretained(kVTDecompressionPropertyKey_DeinterlaceMode).toOpaque()) {
                             // Ready to deinterlaceMode
                             let result2 = VTSessionSetProperty(session,
-                                                           kVTDecompressionPropertyKey_DeinterlaceMode,
-                                                           kVTDecompressionProperty_DeinterlaceMode_Temporal)
+                                                               key: kVTDecompressionPropertyKey_DeinterlaceMode,
+                                                               value: kVTDecompressionProperty_DeinterlaceMode_Temporal)
                             if result2 == noErr {
                                 // Decoder supports temporal processing for deinterlaceMode.
                                 // Try temporal processing on decoding.
@@ -199,19 +199,19 @@ class VideoDecompressor : NSObject {
                 var infoFlagsOut: VTDecodeInfoFlags = VTDecodeInfoFlags(rawValue: 0)
                 
                 // Extract attachment from source SampleBuffer
-                let propagate = CMCopyDictionaryOfAttachments(kCFAllocatorDefault,
-                                                              sampleBuffer,
-                                                              kCMAttachmentMode_ShouldPropagate)
+                let propagate = CMCopyDictionaryOfAttachments(allocator: kCFAllocatorDefault,
+                                                              target: sampleBuffer,
+                                                              attachmentMode: kCMAttachmentMode_ShouldPropagate)
                 
                 // Prepare output handler using source attachments
                 let outputHandler = handler(propagate)
                 
                 // Decoompress sampleBuffer
-                let valid: OSStatus = VTDecompressionSessionDecodeFrameWithOutputHandler(session,
-                                                                                         sampleBuffer,
-                                                                                         decodeFlags,
-                                                                                         &infoFlagsOut,
-                                                                                         outputHandler)
+                let valid: OSStatus = VTDecompressionSessionDecodeFrame(session,
+                                                                        sampleBuffer: sampleBuffer,
+                                                                        flags: decodeFlags,
+                                                                        infoFlagsOut: &infoFlagsOut,
+                                                                        outputHandler: outputHandler)
                 if valid == noErr {
                     // Queued sampleBuffer to decode
                     return true
@@ -264,29 +264,29 @@ class VideoDecompressor : NSObject {
                 
                 // Create format description for imageBuffer
                 var formatDescription: CMVideoFormatDescription? = nil
-                valid = CMVideoFormatDescriptionCreateForImageBuffer(kCFAllocatorDefault, imageBuffer, &formatDescription)
+                valid = CMVideoFormatDescriptionCreateForImageBuffer(allocator: kCFAllocatorDefault, imageBuffer: imageBuffer, formatDescriptionOut: &formatDescription)
                 
                 if valid == noErr, let formatDescription = formatDescription {
                     // Create CMSampleTimingInfo struct
-                    let decodeTimeStamp = kCMTimeInvalid
+                    let decodeTimeStamp = CMTime.invalid
                     var sampleTiming = CMSampleTimingInfo(duration: presentationDuration,
                                                           presentationTimeStamp: presentationTimeStamp,
                                                           decodeTimeStamp: decodeTimeStamp)
                     
                     // Create CMSampleBuffer from imageBuffer
                     var sampleBuffer: CMSampleBuffer? = nil
-                    valid = CMSampleBufferCreateForImageBuffer(kCFAllocatorDefault,
-                                                               imageBuffer,
-                                                               true,
-                                                               nil,
-                                                               nil,
-                                                               formatDescription,
-                                                               &sampleTiming,
-                                                               &sampleBuffer)
+                    valid = CMSampleBufferCreateForImageBuffer(allocator: kCFAllocatorDefault,
+                                                               imageBuffer: imageBuffer,
+                                                               dataReady: true,
+                                                               makeDataReadyCallback: nil,
+                                                               refcon: nil,
+                                                               formatDescription: formatDescription,
+                                                               sampleTiming: &sampleTiming,
+                                                               sampleBufferOut: &sampleBuffer)
                     
                     // Copy all attachments propagated
                     if valid == noErr, let sampleBuffer = sampleBuffer, let propagate = propagate {
-                        CMSetAttachments(sampleBuffer, propagate, kCMAttachmentMode_ShouldPropagate)
+                        CMSetAttachments(sampleBuffer, attachments: propagate, attachmentMode: kCMAttachmentMode_ShouldPropagate)
                     }
                     
                     // Callback AVCaptureManager to write decompressed sample buffer

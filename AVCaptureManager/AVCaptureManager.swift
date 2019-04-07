@@ -144,8 +144,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private var decompressor : VideoDecompressor? = nil
     
     //
-    private var startTime : CMTime = kCMTimeZero
-    private var endTime : CMTime = kCMTimeZero
+    private var startTime : CMTime = CMTime.zero
+    private var endTime : CMTime = CMTime.zero
     private var isInitialTSReady : Bool = false
     private var _duration  : Float64 = 0.0
     
@@ -248,8 +248,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         captureSession = nil
         
         // reset other private parameters
-        startTime = kCMTimeZero
-        endTime = kCMTimeZero
+        startTime = CMTime.zero
+        endTime = CMTime.zero
         isInitialTSReady = false
         _volume = 1.0
         _duration = 0.0
@@ -587,7 +587,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                     
                     var layoutSize: Int = 0
                     if let acl_p = CMAudioFormatDescriptionGetChannelLayout(audioFormatDescription,
-                                                                            &layoutSize) {
+                                                                            sizeOut: &layoutSize) {
                         let avacl = AVAudioChannelLayout.init(layout: acl_p)
                         
                         aclData = NSData.init(bytes: UnsafeRawPointer(acl_p),
@@ -824,8 +824,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         
         // reset TS variables and duration
         isInitialTSReady = false
-        startTime = kCMTimeZero
-        endTime = kCMTimeZero
+        startTime = CMTime.zero
+        endTime = CMTime.zero
         _duration = 0.0
         
         // Create AVAssetWriter for QuickTime Movie
@@ -977,8 +977,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                             //print("### Reset InitialTS for session")
                             self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
                             self.isInitialTSReady = false
-                            self.startTime = kCMTimeZero
-                            self.endTime = kCMTimeZero
+                            self.startTime = CMTime.zero
+                            self.endTime = CMTime.zero
                         }
                         
                         // unref AVAssetWriter
@@ -1119,7 +1119,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 var aclData: NSData? = nil
                 var layoutSize: Int = 0
                 if let acl_p = CMAudioFormatDescriptionGetChannelLayout(audioFormatDescription,
-                                                                        &layoutSize) {
+                                                                        sizeOut: &layoutSize) {
                     let avacl = AVAudioChannelLayout.init(layout: acl_p)
                     avaf = AVAudioFormat.init(streamDescription:asbd_p,
                                               channelLayout: avacl)
@@ -1156,8 +1156,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             // Extract sampleBuffer attachment for SMPTETime
             let smpteTimeData = CMGetAttachment(sampleBuffer,
-                                                smpteTimeKey as CFString,
-                                                nil)
+                                                key: smpteTimeKey as CFString,
+                                                attachmentModeOut: nil)
             if smpteTimeData != nil {
                 smpteReady = true
             } else {
@@ -1350,17 +1350,17 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             // Extract timingInfo from video sample
             var timingInfo = CMSampleTimingInfo()
-            CMSampleBufferGetSampleTimingInfo(videoSampleBuffer, 0, &timingInfo)
+            CMSampleBufferGetSampleTimingInfo(videoSampleBuffer, at: 0, timingInfoOut: &timingInfo)
             
             // Prepare CMTimeCodeFormatDescription
             var description : CMTimeCodeFormatDescription? = nil
-            status = CMTimeCodeFormatDescriptionCreate(kCFAllocatorDefault,
-                                                       timeCodeFormatType,
-                                                       duration,
-                                                       quanta,
-                                                       tcType,
-                                                       nil,
-                                                       &description)
+            status = CMTimeCodeFormatDescriptionCreate(allocator: kCFAllocatorDefault,
+                                                       timeCodeFormatType: timeCodeFormatType,
+                                                       frameDuration: duration,
+                                                       frameQuanta: quanta,
+                                                       flags: tcType,
+                                                       extensions: nil,
+                                                       formatDescriptionOut: &description)
             if status != noErr || description == nil {
                 print("ERROR: Could not create format description.")
                 return nil
@@ -1368,18 +1368,18 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             // Create new SampleBuffer
             var timingInfoTMP = timingInfo
-            status = CMSampleBufferCreate(kCFAllocatorDefault,
-                                          dataBuffer,
-                                          true,
-                                          nil,
-                                          nil,
-                                          description,
-                                          1,
-                                          1,
-                                          &timingInfoTMP,
-                                          1,
-                                          &sizes,
-                                          &sampleBuffer)
+            status = CMSampleBufferCreate(allocator: kCFAllocatorDefault,
+                                          dataBuffer: dataBuffer,
+                                          dataReady: true,
+                                          makeDataReadyCallback: nil,
+                                          refcon: nil,
+                                          formatDescription: description,
+                                          sampleCount: 1,
+                                          sampleTimingEntryCount: 1,
+                                          sampleTimingArray: &timingInfoTMP,
+                                          sampleSizeEntryCount: 1,
+                                          sampleSizeArray: &sizes,
+                                          sampleBufferOut: &sampleBuffer)
             if status != noErr || sampleBuffer == nil {
                 print("ERROR: Could not create sample buffer.")
                 return nil
@@ -1392,8 +1392,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private func extractCVSMPTETime(from sampleBuffer: CMSampleBuffer) -> CVSMPTETime? {
         // Extract sampleBuffer attachment for SMPTETime
         let smpteTimeData = CMGetAttachment(sampleBuffer,
-                                            smpteTimeKey as CFString,
-                                            nil)
+                                            key: smpteTimeKey as CFString,
+                                            attachmentModeOut: nil)
         
         // Create SMPTETime struct from sampleBuffer attachment
         var smpteTime: CVSMPTETime? = nil
@@ -1461,15 +1461,15 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         /* ============================================ */
         
         // Allocate BlockBuffer
-        status = CMBlockBufferCreateWithMemoryBlock(kCFAllocatorDefault,
-                                                    nil,
-                                                    sizes,
-                                                    kCFAllocatorDefault,
-                                                    nil,
-                                                    0,
-                                                    sizes,
-                                                    kCMBlockBufferAssureMemoryNowFlag,
-                                                    &dataBuffer)
+        status = CMBlockBufferCreateWithMemoryBlock(allocator: kCFAllocatorDefault,
+                                                    memoryBlock: nil,
+                                                    blockLength: sizes,
+                                                    blockAllocator: kCFAllocatorDefault,
+                                                    customBlockSource: nil,
+                                                    offsetToData: 0,
+                                                    dataLength: sizes,
+                                                    flags: kCMBlockBufferAssureMemoryNowFlag,
+                                                    blockBufferOut: &dataBuffer)
         if status != noErr || dataBuffer == nil {
             print("ERROR: Could not create block buffer.")
             return nil
@@ -1480,16 +1480,16 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             switch sizes {
             case MemoryLayout<Int32>.size:
                 var frameNumber32BE = frameNumber32.bigEndian
-                status = CMBlockBufferReplaceDataBytes(&frameNumber32BE,
-                                                       dataBuffer,
-                                                       0,
-                                                       sizes)
+                status = CMBlockBufferReplaceDataBytes(with: &frameNumber32BE,
+                                                       blockBuffer: dataBuffer,
+                                                       offsetIntoDestination: 0,
+                                                       dataLength: sizes)
             case MemoryLayout<Int64>.size:
                 var frameNumber64BE = frameNumber64.bigEndian
-                status = CMBlockBufferReplaceDataBytes(&frameNumber64BE,
-                                                       dataBuffer,
-                                                       0,
-                                                       sizes)
+                status = CMBlockBufferReplaceDataBytes(with: &frameNumber64BE,
+                                                       blockBuffer: dataBuffer,
+                                                       offsetIntoDestination: 0,
+                                                       dataLength: sizes)
             default:
                 status = -1
             }
@@ -1603,7 +1603,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         if let dataBuffer : CMBlockBuffer = CMSampleBufferGetDataBuffer(sampleBuffer) {
             // TODO
             let length = CMBlockBufferGetDataLength(dataBuffer)
-            let contiguous = CMBlockBufferIsRangeContiguous(dataBuffer, 0, length)
+            let contiguous = CMBlockBufferIsRangeContiguous(dataBuffer, atOffset: 0, length: length)
             
             print("### length: \(length), contiguous: \(contiguous)")
         }
@@ -1611,14 +1611,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         //print("### \(sampleBuffer)\n")
     }
     
-    private func descriptionForStatus(_ status :AVAssetWriterStatus) -> String {
+    private func descriptionForStatus(_ status :AVAssetWriter.Status) -> String {
         // In case of faulty state
-        let statusArray : [AVAssetWriterStatus : String] = [
-            .unknown    : "AVAssetWriterStatus.Unknown",
-            .writing    : "AVAssetWriterStatus.Writing",
-            .completed  : "AVAssetWriterStatus.Completed",
-            .failed     : "AVAssetWriterStatus.Failed",
-            .cancelled  : "AVAssetWriterStatus.Cancelled"
+        let statusArray : [AVAssetWriter.Status : String] = [
+            .unknown    : "AVAssetWriter.Status.Unknown",
+            .writing    : "AVAssetWriter.Status.Writing",
+            .completed  : "AVAssetWriter.Status.Completed",
+            .failed     : "AVAssetWriter.Status.Failed",
+            .cancelled  : "AVAssetWriter.Status.Cancelled"
         ]
         let statusStr :String = statusArray[status]!
         
@@ -1817,7 +1817,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         
         if let captureVideoDataOutput = captureVideoDataOutput {
             print("captureVideoDataOutput")
-            print(": videoSettings = \(captureVideoDataOutput.videoSettings)")
+            print(": videoSettings = \(String(describing: captureVideoDataOutput.videoSettings))")
             
             #if true
                 // : availableCodecTypes = [avc1, jpeg]
@@ -1847,7 +1847,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         
         if let captureAudioDataOutput = captureAudioDataOutput {
             print("captureAudioDataOutput")
-            print(": audioSettings = \(captureAudioDataOutput.audioSettings)")
+            print(": audioSettings = \(String(describing: captureAudioDataOutput.audioSettings))")
             print("")
         } else {
             print("captureAudioDataOutput is not ready.")
