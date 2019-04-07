@@ -93,11 +93,11 @@ You have to restart session always in the following scenario:
 - To change devices for inputs
 
 #### Development environment
-- MacOS X 10.13.5 High Sierra
-- Xcode 9.4.0
-- Swift 4.1.0
+- MacOS X 10.14.4 Mojave
+- Xcode 10.2.0
+- Swift 5.0
 
 #### License
 - 3-clause BSD license
 
-Copyright © 2016-2018年 MyCometG3. All rights reserved.
+Copyright © 2016-2019年 MyCometG3. All rights reserved.
