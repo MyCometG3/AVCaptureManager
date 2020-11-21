@@ -1008,14 +1008,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         
         // video output codec
         if encodeProRes422 {
-            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecAppleProRes422
+            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecType.proRes422
             
             //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422HQ)
             //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422)
             //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422LT)
             //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422Proxy)
         } else {
-            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecH264
+            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecType.h264
             
             #if false
                 // For H264 encoder (using Main 3.1 maximum bitrate)
