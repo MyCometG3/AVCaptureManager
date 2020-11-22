@@ -2,11 +2,12 @@
 
 Simple but powerful wrapper for AVCapture.framework, etc.
 
-- __Requirement__: MacOS X 10.11 or later.
+- __Requirement__: MacOS X 10.13 or later.
 - __Capture Device__: Any AV devices compatible with AVCapture.framework,
 including A/V mixed connection like DV.
 - __Restriction__: Video-only or Audio-only recording are not supported.
 - __Dependency__: AVFoundation/AVCapture/VideoToolbox/CoreVideo/CoreMedia
+- __Architecture__: Universal binary (x86_64 + arm64)
 
 #### Basic Usage
 
@@ -93,9 +94,9 @@ You have to restart session always in the following scenario:
 - To change devices for inputs
 
 #### Development environment
-- MacOS X 10.15.5 Catalina
-- Xcode 11.5
-- Swift 5.2
+- MacOS X 10.15.7 Catalina
+- Xcode 12.2
+- Swift 5.3.1
 
 #### License
 - 3-clause BSD license
