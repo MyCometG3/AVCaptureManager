@@ -574,6 +574,10 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             var bestChannelLayoutData: NSData? = nil
             var bestBitsPerChannel: UInt32 = 0
             
+            let sampleRateUpper = Double(48000<<3) // 384 kHz
+            let sampleRateLower = Double(48000>>3) //   6 kHz
+            let sampleRateRange:ClosedRange<Double> = sampleRateLower...sampleRateUpper
+            
             let deviceFormats = captureDeviceAudio.formats 
             for deviceFormat in deviceFormats {
                 // Get AudioStreamBasicDescription,  and AVAudioFormat/AudioChannelLayout
@@ -601,7 +605,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 }
                 
                 // Choose better format
-                if let avaf = avaf, let asbd = asbd {
+                if let avaf = avaf, let asbd = asbd, sampleRateRange.contains(avaf.sampleRate) {
                     var better = false
                     
                     if avaf.sampleRate > bestRate {
