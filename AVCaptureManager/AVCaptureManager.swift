@@ -1645,21 +1645,76 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         return String(cString: bytes)
     }
     
+    private func mediaTypesDescription(for device:AVCaptureDevice) -> [String] {
+        let array :[AVMediaType] = [.video,.audio,.text,.closedCaption,.subtitle,.timecode,.metadata,.muxed,.depthData]
+        let result:[String] = array.filter{device.hasMediaType($0)}.map{$0.rawValue}
+        return result
+    }
+    
+    private func supportedVideoFPSDescription(for device:AVCaptureDevice) -> [String] {
+        var result:[String] = []
+        let formatArray = device.formats
+        let testFPSArray:[Float64] = [12, 12.5, 14.985, 15, 23.976, 24, 25, 29.97, 30,
+                                      47.952, 48, 50, 59.94, 60, 95.904, 96, 100]
+        let testDuration:[CMTime] = testFPSArray.map{CMTimeMakeWithSeconds(1.0/$0, preferredTimescale: 120000)}
+        for (index, format) in formatArray.enumerated() {
+            let validFPSArray:[String] = testDuration
+                .filter{validateSampleDuration($0, format: format)}
+                .map{1/$0.seconds}
+                .map{String(format: "%.3f", $0)}
+            let description = (validFPSArray.count > 0 ? validFPSArray.joined(separator: ",") : "n/a")
+            let resultFormat = String(format: "format(%d): [%@]", index, description)
+            result.append(resultFormat)
+        }
+        return result
+    }
+    
+    private func validateSampleDuration(_ duration:CMTime, format:AVCaptureDevice.Format) -> Bool {
+        let rangeArray: [AVFrameRateRange] = format.videoSupportedFrameRateRanges
+        for range in rangeArray {
+            #if false
+                /*
+                 * Some poor UVC device returns broken min/max FPSs, even if the input is in 59.94i.
+                 * e.g. <AVFrameRateRange: 0x6000026a2230 30.00 - 60.00 (1000000 / 30000030 - 1000000 / 60000240)>
+                 * => FPS(min,max) = (30.00003000,60.00024000),
+                 * It does NOT run in 30 fps. And also 29.970fps is out of range... sigh.
+                 */
+                let debug = String(format: "%.9f,(%.9f-%.9f):",
+                                   1.0/duration.seconds, range.minFrameRate, range.maxFrameRate)
+                let closed :(ClosedRange<CMTime>) = (range.minFrameDuration...range.maxFrameDuration)
+                print(debug, (closed.contains(duration) ? "true" : "false"))
+            #endif
+            if (range.minFrameDuration...range.maxFrameDuration).contains(duration) {
+                return true
+            }
+        }
+        return false
+    }
+    
+    private func deviceInfo(_ device: AVCaptureDevice) -> [String:Any] {
+        var deviceInfo: [String:Any] = [
+            "uniqueID" : device.uniqueID,
+            "modelID" : device.modelID,
+            "localizedName" : device.localizedName,
+            "manufacturer" : device.manufacturer,
+            "transportType" : fourCharString(UInt32.init(device.transportType)),
+            "connected" : device.isConnected,
+            "inUseByAnotherApplication" : device.isInUseByAnotherApplication,
+            "suspended" : device.isSuspended,
+            "mediaTypes" : mediaTypesDescription(for: device)
+        ]
+        if device.hasMediaType(.video) {
+            deviceInfo["nativeFPSs"] = supportedVideoFPSDescription(for: device)
+        }
+        return deviceInfo
+    }
+    
     private func deviceInfoArray(mediaType type: AVMediaType) -> [Any] {
         let deviceArray = AVCaptureDevice.devices(for: type)
         
         var deviceInfoArray = [Any]()
         for device in deviceArray {
-            let deviceInfo: [String:Any] = [
-                "uniqueID" : device.uniqueID,
-                "modelID" : device.modelID,
-                "localizedName" : device.localizedName,
-                "manufacturer" : device.manufacturer,
-                "transportType" : fourCharString(UInt32.init(device.transportType)),
-                "connected" : device.isConnected,
-                "inUseByAnotherApplication" : device.isInUseByAnotherApplication,
-                "suspended" : device.isSuspended,
-                ]
+            let deviceInfo: [String:Any] = deviceInfo(device)
             deviceInfoArray.append(deviceInfo)
         }
         
@@ -1673,15 +1728,15 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     open func listDevice() {
         let deviceInfoMuxed = devicesMuxed()
         print("AVMediaTypeMuxed : count = \(deviceInfoMuxed?.count as Optional)")
-        print(": \"\(deviceInfoMuxed as Optional))")
+        deviceInfoMuxed?.forEach{ info in print(": ", info)}
         
         let deviceInfoVideo = devicesVideo()
         print("AVMediaTypeVideo : count = \(deviceInfoVideo?.count as Optional)")
-        print(": \"\(deviceInfoVideo as Optional))")
+        deviceInfoVideo?.forEach{ info in print(": ", info )}
         
         let deviceInfoAudio = devicesAudio()
         print("AVMediaTypeAudio : count = \(deviceInfoAudio?.count as Optional)")
-        print(": \"\(deviceInfoAudio as Optional))")
+        deviceInfoAudio?.forEach{ info in print(": ", info )}
         
         print("")
     }
@@ -1703,16 +1758,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     
     open func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {
         guard let device = AVCaptureDevice.init(uniqueID: uniqueID) else { return nil }
-        let deviceInfo: [String:Any] = [
-            "uniqueID" : device.uniqueID,
-            "modelID" : device.modelID,
-            "localizedName" : device.localizedName,
-            "manufacturer" : device.manufacturer,
-            "transportType" : fourCharString(UInt32.init(device.transportType)),
-            "connected" : device.isConnected,
-            "inUseByAnotherApplication" : device.isInUseByAnotherApplication,
-            "suspended" : device.isSuspended,
-        ]
+        let deviceInfo: [String:Any] = deviceInfo(device)
         return deviceInfo
     }
     
@@ -1722,7 +1768,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         /* ============================================ */
         
         if let captureDeviceVideo = captureDeviceVideo {
-            print("captureDeviceVideo")
+            print("captureDeviceVideo (\( captureDeviceVideo.localizedName), \(captureDeviceVideo.modelID)):")
             
             if let captureDeviceInputVideo = captureDeviceInputVideo {
                 for item in (captureDeviceInputVideo.ports) {
