@@ -1528,7 +1528,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             }
             
             // Update endTime/duration CMTime value
-            self.endTime = CMTimeAdd(presentation, duration)
+            let newEndTime = CMTimeAdd(presentation, duration)
+            let currentEndTime = self.endTime
+            self.endTime = CMTimeMaximum(currentEndTime, newEndTime)
             self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
         }
         objc_sync_exit(self)
