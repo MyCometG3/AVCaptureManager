@@ -11,6 +11,7 @@
 		1618D3091D56F75000000D1D /* AVCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1618D3081D56F75000000D1D /* AVCaptureManager.swift */; };
 		1618D30B1D56FA2B00000D1D /* VideoDecompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1618D30A1D56FA2B00000D1D /* VideoDecompressor.swift */; };
 		1618D30D1D5707BE00000D1D /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1618D30C1D5707BE00000D1D /* Constants.swift */; };
+		16308AE22943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -20,6 +21,7 @@
 		1618D3081D56F75000000D1D /* AVCaptureManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AVCaptureManager.swift; sourceTree = "<group>"; };
 		1618D30A1D56FA2B00000D1D /* VideoDecompressor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = VideoDecompressor.swift; sourceTree = "<group>"; };
 		1618D30C1D5707BE00000D1D /* Constants.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureVideoDataOutput+Missing.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -57,6 +59,7 @@
 				1618D3081D56F75000000D1D /* AVCaptureManager.swift */,
 				1618D30A1D56FA2B00000D1D /* VideoDecompressor.swift */,
 				1618D30C1D5707BE00000D1D /* Constants.swift */,
+				16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */,
 			);
 			path = AVCaptureManager;
 			sourceTree = "<group>";
@@ -146,6 +149,7 @@
 				1618D3091D56F75000000D1D /* AVCaptureManager.swift in Sources */,
 				1618D30B1D56FA2B00000D1D /* VideoDecompressor.swift in Sources */,
 				1618D30D1D5707BE00000D1D /* Constants.swift in Sources */,
+				16308AE22943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

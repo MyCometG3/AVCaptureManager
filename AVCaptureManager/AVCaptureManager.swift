@@ -1931,18 +1931,3 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         }
     }
 }
-
-extension AVCaptureVideoDataOutput {
-    // Swift header bug?
-    // https://github.com/apple/swift/blob/master/stdlib/public/SDK/AVFoundation/AVCaptureVideoDataOutput.swift
-    
-    @nonobjc
-    public var availableVideoCVPixelFormatTypes :[Any]! {
-        return __availableVideoCVPixelFormatTypes
-    }
-    
-    @nonobjc
-    public var availableVideoPixelFormatTypes: [OSType] {
-        return __availableVideoCVPixelFormatTypes.map { $0.uint32Value } as [OSType]
-    }
-}
