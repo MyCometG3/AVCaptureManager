@@ -32,6 +32,8 @@
 import Cocoa
 import AVFoundation
 import VideoToolbox
+import CoreMediaIO.CMIOSampleBuffer
+import CoreAudioTypes
 
 open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
@@ -139,7 +141,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private var avAssetWriter : AVAssetWriter? = nil
     private var avAssetWriterInputVideo : AVAssetWriterInput? = nil
     private var avAssetWriterInputAudio : AVAssetWriterInput? = nil
-    private var avAssetWriterInputTimeCode : AVAssetWriterInput? = nil
+    private var avAssetWriterInputTimeCodeVideo : AVAssetWriterInput? = nil
     
     private var decompressor : VideoDecompressor? = nil
     
@@ -157,8 +159,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private var uniqueIDvideo : String? = nil
     private var uniqueIDaudio : String? = nil
     
-    private let smpteTimeKey : String = "com.apple.cmio.buffer_attachment.core_audio_smpte_time"
-    private var smpteReady : Bool = false
+    private var smpteReadyVideo : Bool = false
     
     private var isWriting : Bool = false
     
@@ -221,7 +222,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         stopSession()
         
         // unref AVAssetWriter
-        avAssetWriterInputTimeCode = nil
+        avAssetWriterInputTimeCodeVideo = nil
         avAssetWriterInputVideo = nil
         avAssetWriterInputAudio = nil
         avAssetWriter = nil
@@ -256,7 +257,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         uniqueIDmuxed = nil
         uniqueIDvideo = nil
         uniqueIDaudio = nil
-        smpteReady = false
+        smpteReadyVideo = false
         isWriting = false
         audioDeviceCompressedFormat = [:]
         audioDeviceDecompressedFormat = [:]
@@ -822,7 +823,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
         // unref previous AVAssetWriter and decompressor
         avAssetWriterInputVideo = nil
         avAssetWriterInputAudio = nil
-        avAssetWriterInputTimeCode = nil
+        avAssetWriterInputTimeCodeVideo = nil
         avAssetWriter = nil
         decompressor = nil
         
@@ -885,12 +886,12 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             
             /* ============================================ */
             
-            if timeCodeFormatType != nil && smpteReady {
+            if timeCodeFormatType != nil && smpteReadyVideo {
                 // Create AVAssetWriterInput for Timecode (SMPTE)
-                avAssetWriterInputTimeCode = AVAssetWriterInput(mediaType: AVMediaType.timecode,
+                avAssetWriterInputTimeCodeVideo = AVAssetWriterInput(mediaType: AVMediaType.timecode,
                                                                 outputSettings: nil)
                 
-                if let inputVideo = avAssetWriterInputVideo, let inputTimeCode = avAssetWriterInputTimeCode {
+                if let inputVideo = avAssetWriterInputVideo, let inputTimeCode = avAssetWriterInputTimeCodeVideo {
                     inputVideo.addTrackAssociation(withTrackOf: inputTimeCode,
                                                    type: AVAssetTrack.AssociationType.timecode.rawValue)
                 }
@@ -919,8 +920,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                     print("ERROR: avAssetWriter.addInput(avAssetWriterInputAudio)")
                 }
             }
-            if timeCodeFormatType != nil && smpteReady {
-                if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCode {
+            if timeCodeFormatType != nil && smpteReadyVideo {
+                if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
                     if avAssetWriter.canAdd(avAssetWriterInputTimeCode) {
                         avAssetWriterInputTimeCode.expectsMediaDataInRealTime = true
                         avAssetWriter.add(avAssetWriterInputTimeCode)
@@ -945,7 +946,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     private func stopRecordingToOutputFile() {
         if let avAssetWriter = avAssetWriter {
             // Finish writing
-            if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCode {
+            if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
                 avAssetWriterInputTimeCode.markAsFinished()
             }
             if let avAssetWriterInputVideo = avAssetWriterInputVideo {
@@ -986,7 +987,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                         }
                         
                         // unref AVAssetWriter
-                        self.avAssetWriterInputTimeCode = nil
+                        self.avAssetWriterInputTimeCodeVideo = nil
                         self.avAssetWriterInputVideo = nil
                         self.avAssetWriterInputAudio = nil
                         self.avAssetWriter = nil
@@ -1159,13 +1160,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             }
             
             // Extract sampleBuffer attachment for SMPTETime
-            let smpteTimeData = CMGetAttachment(sampleBuffer,
-                                                key: smpteTimeKey as CFString,
-                                                attachmentModeOut: nil)
-            if smpteTimeData != nil {
-                smpteReady = true
+            let cvSmpteTime = extractCVSMPTETime(from: sampleBuffer)
+            if cvSmpteTime != nil {
+                smpteReadyVideo = true
             } else {
-                smpteReady = false
+                smpteReadyVideo = false
             }
         }
         
@@ -1228,7 +1227,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
                 }
                 
                 // Timecode track support
-                if timeCodeFormatType != nil && smpteReady {
+                if timeCodeFormatType != nil && smpteReadyVideo {
                     if let sampleBufferTimeCode = createTimeCodeSampleBuffer(from: sampleBuffer) {
                         writeTimecodeSampleBuffer(sampleBufferTimeCode)
                     }
@@ -1279,7 +1278,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     }
     
     internal func writeTimecodeSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
-        if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCode {
+        if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
             if avAssetWriterInputTimeCode.isReadyForMoreMediaData {
                 //
                 updateTimeStamp(sampleBuffer)
@@ -1300,9 +1299,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     // MARK: - private Timecode support func
     /* ======================================================================================== */
     
-    private func createTimeCodeSampleBuffer(from videoSampleBuffer: CMSampleBuffer) -> CMSampleBuffer? {
-        // Extract SMPTETime from video sample
-        guard let smpteTime = extractCVSMPTETime(from: videoSampleBuffer)
+    private func createTimeCodeSampleBuffer(from srcSampleBuffer: CMSampleBuffer) -> CMSampleBuffer? {
+        // Extract SMPTETime from source sample buffer
+        guard let smpteTime = extractCVSMPTETime(from: srcSampleBuffer)
             else { return nil }
         
         // Check CMTimeCodeFormatType
@@ -1350,11 +1349,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
             var status: OSStatus = noErr
             
             // Extract duration from video sample
-            let duration = CMSampleBufferGetDuration(videoSampleBuffer)
+            let duration = CMSampleBufferGetDuration(srcSampleBuffer)
             
             // Extract timingInfo from video sample
             var timingInfo = CMSampleTimingInfo()
-            CMSampleBufferGetSampleTimingInfo(videoSampleBuffer, at: 0, timingInfoOut: &timingInfo)
+            CMSampleBufferGetSampleTimingInfo(srcSampleBuffer, at: 0, timingInfoOut: &timingInfo)
             
             // Prepare CMTimeCodeFormatDescription
             var description : CMTimeCodeFormatDescription? = nil
@@ -1394,28 +1393,55 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate,
     }
     
     private func extractCVSMPTETime(from sampleBuffer: CMSampleBuffer) -> CVSMPTETime? {
-        // Extract sampleBuffer attachment for SMPTETime
-        let smpteTimeData = CMGetAttachment(sampleBuffer,
-                                            key: smpteTimeKey as CFString,
-                                            attachmentModeOut: nil)
+        /*
+         NOTE: SMPTETime in CoreAudioBaseTypes.h == CVSMPTETime in CVBase.h
+
+         kCMIOSampleBufferAttachmentKey_CAAudioTimeStamp:
+             = com.apple.cmio.buffer_attachment.audio.core_audio_audio_time_stamp
+         kCMIOSampleBufferAttachmentKey_SMPTETime:
+             = com.apple.cmio.buffer_attachment.core_audio_smpte_time
+         */
         
-        // Create SMPTETime struct from sampleBuffer attachment
-        var smpteTime: CVSMPTETime? = nil
-        if let smpteTimeData = smpteTimeData as? Data {
-            let data = (smpteTimeData as NSData).bytes.bindMemory(to: CVSMPTETime.self,
-                                                                  capacity: smpteTimeData.count).pointee
-            smpteTime = CVSMPTETime(subframes: data.subframes,
-                                    subframeDivisor: data.subframeDivisor,
-                                    counter: data.counter,
-                                    type: data.type,
-                                    flags: data.flags,
-                                    hours: data.hours,
-                                    minutes: data.minutes,
-                                    seconds: data.seconds,
-                                    frames: data.frames)
+        var cvSmpteTime :CVSMPTETime? = nil
+        
+        // Test SampleBufferAttachment "CAAudioTimeStamp" as AudioTimeStamp
+        let audioTimeStampKey = kCMIOSampleBufferAttachmentKey_CAAudioTimeStamp.takeUnretainedValue()
+        let audioTimeStampData = CMGetAttachment(sampleBuffer, key: audioTimeStampKey, attachmentModeOut: nil)
+        if let audioTimeStampData = audioTimeStampData as? NSData {
+            let ats = audioTimeStampData.bytes.bindMemory(to: AudioTimeStamp.self,
+                                                          capacity: audioTimeStampData.length).pointee
+            if ats.mFlags.contains(.smpteTimeValid) {
+                let smpteTime = ats.mSMPTETime
+                cvSmpteTime = dupSMPTEtoCV(smpteTime)
+            }
+        }
+        if cvSmpteTime == nil {
+            // Test SampleBufferAttachment "SMPTETime"
+            let smpteTimeKey = kCMIOSampleBufferAttachmentKey_SMPTETime.takeUnretainedValue()
+            let smpteTimeData = CMGetAttachment(sampleBuffer, key: smpteTimeKey, attachmentModeOut: nil)
+            if let smpteTimeData = smpteTimeData as? NSData {
+                let smpteTime = smpteTimeData.bytes.bindMemory(to: SMPTETime.self,
+                                                               capacity: smpteTimeData.count).pointee
+                cvSmpteTime = dupSMPTEtoCV(smpteTime)
+            }
         }
         
-        return smpteTime
+        return cvSmpteTime
+    }
+    
+    private func dupSMPTEtoCV(_ smpteTime:SMPTETime) -> CVSMPTETime {
+        // Create new copy of SMPTETime as CVSMPTETime,
+        // as the original SMPTETime struct is backed by CFDataRef CMAttachment
+        let cvSmpteTime = CVSMPTETime(subframes: smpteTime.mSubframes,
+                                      subframeDivisor: smpteTime.mSubframeDivisor,
+                                      counter: smpteTime.mCounter,
+                                      type: smpteTime.mType.rawValue,
+                                      flags: smpteTime.mFlags.rawValue,
+                                      hours: smpteTime.mHours,
+                                      minutes: smpteTime.mMinutes,
+                                      seconds: smpteTime.mSeconds,
+                                      frames: smpteTime.mFrames)
+        return cvSmpteTime
     }
     
     private func prepareTimeCodeDataBuffer(_ smpteTime: CVSMPTETime,
