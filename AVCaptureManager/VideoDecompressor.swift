@@ -43,7 +43,7 @@ class VideoDecompressor : NSObject {
     /* ======================================================================================== */
     
     // For callback
-    internal var manager: AVCaptureManager? = nil
+    internal var writeDecompressed: ((CMSampleBuffer) -> Void)? = nil
     
     /* ======================================================================================== */
     // MARK: - private variables
@@ -290,8 +290,8 @@ class VideoDecompressor : NSObject {
                     }
                     
                     // Callback AVCaptureManager to write decompressed sample buffer
-                    if valid == noErr, let sampleBuffer = sampleBuffer, let manager = self.manager {
-                        manager.writeVideoSampleBuffer(sampleBuffer)
+                    if valid == noErr, let sampleBuffer = sampleBuffer, let writeDecompressed = writeDecompressed {
+                        writeDecompressed(sampleBuffer)
                     } else {
                         print("ERROR: Failed to CMSampleBufferCreateForImageBuffer(). error = \(valid)")
                     }

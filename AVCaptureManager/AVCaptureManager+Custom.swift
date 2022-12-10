@@ -537,7 +537,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
-    internal func writeAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+    private func writeAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputAudio = avAssetWriterInputAudio {
             if avAssetWriterInputAudio.isReadyForMoreMediaData {
                 //
@@ -555,7 +555,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
-    internal func writeVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+    private func writeVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputVideo = avAssetWriterInputVideo {
             if avAssetWriterInputVideo.isReadyForMoreMediaData {
                 //
@@ -573,7 +573,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
-    internal func writeTimecodeSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
+    private func writeTimecodeSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
             if avAssetWriterInputTimeCode.isReadyForMoreMediaData {
                 //
@@ -868,7 +868,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         
         if let decompressor = decompressor {
             if decompressor.isReady() {
-                decompressor.manager = self
+                decompressor.writeDecompressed = { [unowned self] (sampleBuffer) in
+                    self.writeVideoSampleBuffer(sampleBuffer)
+                }
                 return true
             } else {
                 print("ERROR: Failed to init decompressor. Not ready.")
