@@ -194,12 +194,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         // Initialize session
         if prepareSession() {
             // Start Capture session
-            startSession()
-            
-            return true
+            if startSession() {
+                return true
+            } else {
+                print("ERROR: startSession() failed.")
+            }
+        } else {
+            print("ERROR: prepareSession() failed.")
         }
-        
-        print("ERROR: Failed to start session.")
         return false
     }
     
@@ -216,7 +218,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
         
         // Stop Capture session
-        stopSession()
+        _ = stopSession() // Ignore any error
         
         // unref AVAssetWriter
         avAssetWriterInputTimeCodeVideo = nil
@@ -378,38 +380,51 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         var inputReady = false
         var outputReady = false
         
-        captureSession = AVCaptureSession()
+        // Verify readiness
+        guard captureDeviceVideo == nil && captureDeviceAudio == nil && captureSession == nil
+        else {
+            print("ERROR: Unexpected session state detected.")
+            return false
+        }
         
+        // Define Capture Device
+        if useMuxed {
+            //
+            if let captureDevice = availableDevice(for: .muxed, uniqueID: uniqueIDmuxed) {
+                captureDeviceVideo = captureDevice
+                captureDeviceAudio = nil
+            } else {
+                print("NOTICE: No Muxed device is found.")
+            }
+        } else {
+            //
+            if let captureDevice = availableDevice(for: .video, uniqueID: uniqueIDvideo) {
+                captureDeviceVideo = captureDevice
+            } else {
+                print("NOTICE: No Video device is found.")
+            }
+            //
+            if let captureDevice = availableDevice(for: .audio, uniqueID: uniqueIDaudio) {
+                captureDeviceAudio = captureDevice
+            } else {
+                print("NOTICE: No Audio device is found.")
+            }
+        }
+        
+        // Verify device availability
+        let deviceReadyVideo = (captureDeviceVideo != nil &&
+                                captureDeviceVideo!.isInUseByAnotherApplication == false)
+        let deviceReadyAudio = (captureDeviceAudio != nil &&
+                                captureDeviceAudio!.isInUseByAnotherApplication == false)
+        guard (deviceReadyVideo || deviceReadyAudio) else {
+            print("ERROR: No AVCaptureDevice is ready.")
+            return false
+        }
+                
+        // Init AVCaptureSession
+        captureSession = AVCaptureSession()
         if let captureSession = captureSession {
             captureSession.beginConfiguration()
-            
-            /* ============================================ */
-            
-            // Define Capture Device
-            if useMuxed {
-                //
-                if let uniqueIDmuxed = uniqueIDmuxed {
-                    let captureDevice : AVCaptureDevice? = AVCaptureDevice(uniqueID: uniqueIDmuxed)
-                    captureDeviceVideo = captureDevice
-                    captureDeviceAudio = nil
-                } else {
-                    let captureDevice : AVCaptureDevice? = AVCaptureDevice.default(for: AVMediaType.muxed)
-                    captureDeviceVideo = captureDevice
-                    captureDeviceAudio = nil
-                }
-            } else {
-                //
-                if let uniqueIDvideo = uniqueIDvideo {
-                    captureDeviceVideo = AVCaptureDevice(uniqueID: uniqueIDvideo)
-                } else {
-                    captureDeviceVideo = AVCaptureDevice.default(for: AVMediaType.video)
-                }
-                if let uniqueIDaudio = uniqueIDaudio {
-                    captureDeviceAudio = AVCaptureDevice(uniqueID: uniqueIDaudio)
-                } else {
-                    captureDeviceAudio = AVCaptureDevice.default(for: AVMediaType.audio)
-                }
-            }
             
             /* ============================================ */
             
@@ -435,6 +450,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 outputReady = addVideoDataOutput(decode: false) && addAudioDataOutput(decode: true)
             }
             
+            /* ============================================ */
+            
             // Add preview video (CAlayer)
             _ = addPreviewVideoLayer() // Ignore any error
             
@@ -444,17 +461,17 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             /* ============================================ */
             
             captureSession.commitConfiguration()
-            
-            if inputReady && outputReady {
-                return true
-            }
         }
         
-        print("ERROR: Failed to prepare Capture session.")
-        return false
+        if inputReady && outputReady {
+            return true
+        } else {
+            print("ERROR: Failed to prepare Capture session.")
+            return false
+        }
     }
     
-    private func startSession() {
+    private func startSession() -> Bool {
         if let captureSession = captureSession {
             if (captureSession.isRunning == false) {
                 // Reset video encoded size
@@ -462,17 +479,17 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 
                 //
                 captureSession.startRunning()
-                
-                return
+            } else {
+                // print("NOTICE: Capture session is already running.")
             }
-            // print("ERROR: Capture session is already running.")
-            return
+            return true
         }
         
         print("ERROR: Capture session is not ready.")
+        return false
     }
     
-    private func stopSession() {
+    private func stopSession() -> Bool {
         if let captureSession = captureSession {
             if captureSession.isRunning {
                 //
@@ -480,14 +497,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 
                 // Reset video encoded size
                 videoSize = nil
-                
-                return
+            } else {
+                // print("ERROR: Capture session is not running.")
             }
-            // print("ERROR: Capture session is not running.")
-            return
+            return true
         }
         
         print("ERROR: Capture session is not ready.")
+        return false
     }
     
     /* ======================================================================================== */
@@ -778,6 +795,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         ]
         
         return String(cString: bytes)
+    }
+    
+    private func availableDevice(for type:AVMediaType, uniqueID: String?) -> AVCaptureDevice? {
+        if let uniqueID = uniqueID, let device = AVCaptureDevice(uniqueID: uniqueID) {
+            return device
+        } else {
+            return AVCaptureDevice.default(for: type)
+        }
     }
     
 }
