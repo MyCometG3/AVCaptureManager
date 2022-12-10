@@ -106,7 +106,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
     open var clapHOffset : Int = 0
     open var clapVOffset : Int = 0
-    open var videoSize : CGSize? = nil
+    internal (set) public var videoSize : CGSize? = nil
     open var sampleTimescaleVideo : CMTimeScale = 0
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
 
