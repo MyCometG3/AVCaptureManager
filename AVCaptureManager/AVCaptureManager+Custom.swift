@@ -379,13 +379,13 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
         
         // Clipping for kAudioFormatMPEG4AAC
-        if (audioOutputSettings[AVSampleRateKey] as! Float) > 48000.0 {
-            // kAudioFormatMPEG4AAC runs up to 48KHz
-            audioOutputSettings[AVSampleRateKey] = 48000
+        if (audioOutputSettings[AVSampleRateKey] as! Float) > 96000 {
+            // runs up to 96KHz
+            audioOutputSettings[AVSampleRateKey] = 96000
         }
         if (audioOutputSettings[AVEncoderBitRateKey] as! Int) > 320*1024 {
-            // kAudioFormatMPEG4AAC runs up to 320Kbps
-            audioOutputSettings[AVSampleRateKey] = 320*1024
+            // runs up to 320Kbps
+            audioOutputSettings[AVEncoderBitRateKey] = 320*1024
         }
         
         return audioOutputSettings
