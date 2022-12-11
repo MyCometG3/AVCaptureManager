@@ -116,7 +116,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var updateAudioSettings : (([String:Any]) -> [String:Any])? = nil
     
     /* ======================================================================================== */
-    // MARK: - internal variables
+    // MARK: - internal variables - session
     /* ======================================================================================== */
     
     internal var captureSession : AVCaptureSession? = nil
@@ -127,41 +127,50 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     internal var captureDeviceInputAudio : AVCaptureDeviceInput? = nil
     internal var captureDeviceInputVideo : AVCaptureDeviceInput? = nil
     
-    internal var captureMovieFileOutput : AVCaptureMovieFileOutput? = nil
-    internal var captureVideoDataOutput : AVCaptureVideoDataOutput? = nil
-    internal var captureAudioDataOutput : AVCaptureAudioDataOutput? = nil
-    
     internal var previewAudioOutput : AVCaptureAudioPreviewOutput? = nil
     internal var previewVideoLayer : AVCaptureVideoPreviewLayer? = nil
     internal var previewVideoConnection : AVCaptureConnection? = nil
     
-    internal var avAssetWriter : AVAssetWriter? = nil
-    internal var avAssetWriterInputVideo : AVAssetWriterInput? = nil
-    internal var avAssetWriterInputAudio : AVAssetWriterInput? = nil
-    internal var avAssetWriterInputTimeCodeVideo : AVAssetWriterInput? = nil
-    
-    internal var decompressor : VideoDecompressor? = nil
-    
-    //
-    internal var startTime : CMTime = CMTime.zero
-    internal var endTime : CMTime = CMTime.zero
-    internal var isInitialTSReady : Bool = false
-    internal var _duration  : Float64 = 0.0
-    
-    //
     internal var _volume : Float = 1.0
     
-    //
     internal var uniqueIDmuxed : String? = nil
     internal var uniqueIDvideo : String? = nil
     internal var uniqueIDaudio : String? = nil
     
-    internal var smpteReadyVideo : Bool = false
+    internal var smpteReadyVideo : Bool = false                             // Custom
+    
+    internal var lastSeqVideo : UInt64 = kCMIOInvalidSequenceNumber         // Custom
+    internal var lastSeqAudio : UInt64 = kCMIOInvalidSequenceNumber         // Custom
+    
+    /* ======================================================================================== */
+    // MARK: - internal variables - recording
+    /* ======================================================================================== */
+    
+    internal var captureMovieFileOutput : AVCaptureMovieFileOutput? = nil
+    internal var captureVideoDataOutput : AVCaptureVideoDataOutput? = nil   // Custom
+    internal var captureAudioDataOutput : AVCaptureAudioDataOutput? = nil   // Custom
+    
+    internal var avAssetWriter : AVAssetWriter? = nil
+    internal var avAssetWriterInputVideo : AVAssetWriterInput? = nil        // Custom
+    internal var avAssetWriterInputAudio : AVAssetWriterInput? = nil        // Custom
+    internal var avAssetWriterInputTimeCodeVideo : AVAssetWriterInput? = nil // Custom
+    
+    internal var decompressor : VideoDecompressor? = nil                    // Custom
+    
+    internal var _duration  : Float64 = 0.0                                 // Custom
+    internal var startTime : CMTime = CMTime.zero                           // Custom
+    internal var endTime : CMTime = CMTime.zero                             // Custom
+    internal var isInitialTSReady : Bool = false                            // Custom
     
     internal var isWriting : Bool = false
     
     internal var audioDeviceDecompressedFormat : [String:Any] = [:]
-    internal var audioDeviceCompressedFormat : [String:Any] = [:]
+    internal var audioDeviceCompressedFormat : [String:Any] = [:]           // Custom
+    
+    internal var resampleDuration : CMTime? = nil                           // Custom
+    internal var resampleCurrentPTS : CMTime? = nil                         // Custom
+    internal var resampleNextPTS : CMTime? = nil                            // Custom
+    internal var resampleCaptured : CMSampleBuffer? = nil                   // Custom
     
     /* ======================================================================================== */
     // MARK: - public session API
@@ -220,46 +229,56 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         // Stop Capture session
         _ = stopSession() // Ignore any error
         
-        // unref AVAssetWriter
+        // Release objects (recording)
         avAssetWriterInputTimeCodeVideo = nil
         avAssetWriterInputVideo = nil
         avAssetWriterInputAudio = nil
         avAssetWriter = nil
         
-        // unref AVCaptureXXXXXPreviewXXXX
-        previewVideoConnection = nil
-        previewVideoLayer = nil
-        previewAudioOutput = nil
-        
-        // unref AVCaptureOutput
         captureMovieFileOutput = nil
         captureVideoDataOutput = nil
         captureAudioDataOutput = nil
         
-        // unref AVCaptureDeviceInput
+        // Release objects (session)
+        previewVideoConnection = nil
+        previewVideoLayer = nil
+        previewAudioOutput = nil
+        
         captureDeviceInputVideo = nil
         captureDeviceInputAudio = nil
         
-        // unref AVCaptureDevice
         captureDeviceVideo = nil
         captureDeviceAudio = nil
         
-        // unref AVCaptureSession
         captureSession = nil
         
-        // reset other private parameters
+        // Reset other private parameters (recording)
+        _duration = 0.0
         startTime = CMTime.zero
         endTime = CMTime.zero
         isInitialTSReady = false
+        
+        isWriting = false
+        
+        audioDeviceCompressedFormat = [:]
+        audioDeviceDecompressedFormat = [:]
+        
+        resampleDuration = nil
+        resampleCurrentPTS = nil
+        resampleNextPTS = nil
+        resampleCaptured = nil
+        
+        // Reset other private parameters (session)
         _volume = 1.0
-        _duration = 0.0
+        
         uniqueIDmuxed = nil
         uniqueIDvideo = nil
         uniqueIDaudio = nil
+        
         smpteReadyVideo = false
-        isWriting = false
-        audioDeviceCompressedFormat = [:]
-        audioDeviceDecompressedFormat = [:]
+        
+        lastSeqVideo = kCMIOInvalidSequenceNumber
+        lastSeqAudio = kCMIOInvalidSequenceNumber
         
         // reset public parameters (a few)
         videoSize = nil
@@ -428,7 +447,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             
             /* ============================================ */
             
-            // For video; Choose larger format, and fixed sample duration if requested
+            // For video; Choose larger format
             _ = chooseVideoDeviceFormat() // Ignore any error
             
             // For audio; Choose higher sample rate and multi channel
@@ -519,39 +538,12 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             
             let deviceFormats = captureDeviceVideo.formats 
             for format in deviceFormats {
-                var betterOrSame = false
-                
-                do {
-                    let formatDescription = format.formatDescription
-                    let dimmensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
-                    let pixels = dimmensions.width * dimmensions.height
-                    if pixels >= bestPixels {
-                        betterOrSame = true
-                        bestPixels = pixels
-                    }
-                }
-                
-                if let sampleDurationVideo = sampleDurationVideo {
-                    var supported = false
-                    
-                    let rangeArray = format.videoSupportedFrameRateRanges
-                    for range in rangeArray {
-                        let requested = CMTimeGetSeconds(sampleDurationVideo)
-                        let max = CMTimeGetSeconds(range.maxFrameDuration)
-                        let min = CMTimeGetSeconds(range.minFrameDuration)
-                        if max >= requested && requested >= min {
-                            supported = true
-                            break
-                        }
-                    }
-                    
-                    if betterOrSame && supported {
-                        bestFormat = format
-                    }
-                } else {
-                    if betterOrSame {
-                        bestFormat = format
-                    }
+                let formatDescription = format.formatDescription
+                let dimmensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
+                let pixels = dimmensions.width * dimmensions.height
+                if pixels >= bestPixels {
+                    bestFormat = format
+                    bestPixels = pixels
                 }
             }
             
@@ -562,10 +554,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 do {
                     try captureDeviceVideo.lockForConfiguration()
                     captureDeviceVideo.activeFormat = bestFormat
-                    if let sampleDurationVideo = sampleDurationVideo {
-                        captureDeviceVideo.activeVideoMinFrameDuration = sampleDurationVideo
-                        captureDeviceVideo.activeVideoMaxFrameDuration = sampleDurationVideo
-                    }
                     captureDeviceVideo.unlockForConfiguration()
                     
                     return true

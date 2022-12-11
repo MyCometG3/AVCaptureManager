@@ -14,6 +14,7 @@
 		16308AE22943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */; };
 		16308AE42943FB0B00A5DB05 /* AVCaptureManager+Custom.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE32943FB0B00A5DB05 /* AVCaptureManager+Custom.swift */; };
 		16308AE62943FF8600A5DB05 /* AVCaptureManager+Desc.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE52943FF8600A5DB05 /* AVCaptureManager+Desc.swift */; };
+		16308AE82946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE72946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 		16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureVideoDataOutput+Missing.swift"; sourceTree = "<group>"; };
 		16308AE32943FB0B00A5DB05 /* AVCaptureManager+Custom.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureManager+Custom.swift"; sourceTree = "<group>"; };
 		16308AE52943FF8600A5DB05 /* AVCaptureManager+Desc.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureManager+Desc.swift"; sourceTree = "<group>"; };
+		16308AE72946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CMIOSampleBuffer+Missing.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,6 +63,7 @@
 				1618D3001D56F70C00000D1D /* AVCaptureManager.h */,
 				1618D3021D56F70C00000D1D /* Info.plist */,
 				1618D3081D56F75000000D1D /* AVCaptureManager.swift */,
+				16308AE72946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift */,
 				16308AE12943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift */,
 				16308AE32943FB0B00A5DB05 /* AVCaptureManager+Custom.swift */,
 				16308AE52943FF8600A5DB05 /* AVCaptureManager+Desc.swift */,
@@ -152,6 +155,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				16308AE82946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift in Sources */,
 				1618D3091D56F75000000D1D /* AVCaptureManager.swift in Sources */,
 				1618D30B1D56FA2B00000D1D /* VideoDecompressor.swift in Sources */,
 				1618D30D1D5707BE00000D1D /* Constants.swift in Sources */,

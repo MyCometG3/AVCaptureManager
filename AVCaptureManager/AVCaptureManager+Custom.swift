@@ -135,13 +135,25 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         avAssetWriterInputAudio = nil
         avAssetWriterInputTimeCodeVideo = nil
         avAssetWriter = nil
+        
         decompressor = nil
         
         // reset TS variables and duration
-        isInitialTSReady = false
+        _duration = 0.0
         startTime = CMTime.zero
         endTime = CMTime.zero
-        _duration = 0.0
+        isInitialTSReady = false
+        
+        // Reset Resampling values
+        resampleDuration = nil
+        resampleCurrentPTS = nil
+        resampleNextPTS = nil
+        resampleCaptured = nil
+        
+        // Apply resampling values
+        if let sampleDurationVideo = sampleDurationVideo {
+            resampleDuration = sampleDurationVideo
+        }
         
         // Create AVAssetWriter for QuickTime Movie
         avAssetWriter = try? AVAssetWriter.init(outputURL: fileUrl, fileType: AVFileType.mov)
@@ -288,13 +300,16 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                         }
                         
                         // Reset CMTime values
-                        if self.isInitialTSReady == true {
-                            //print("### Reset InitialTS for session")
-                            self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
-                            self.isInitialTSReady = false
-                            self.startTime = CMTime.zero
-                            self.endTime = CMTime.zero
-                        }
+                        self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
+                        self.startTime = CMTime.zero
+                        self.endTime = CMTime.zero
+                        self.isInitialTSReady = false
+                        
+                        // Reset Resampling values
+                        self.resampleDuration = nil
+                        self.resampleCurrentPTS = nil
+                        self.resampleNextPTS = nil
+                        self.resampleCaptured = nil
                         
                         // unref AVAssetWriter
                         self.avAssetWriterInputTimeCodeVideo = nil
@@ -395,6 +410,15 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     // MARK: - capture delegate protocol
     /* ======================================================================================== */
     
+    open func captureOutput(_ output: AVCaptureOutput,
+                            didDrop sampleBuffer: CMSampleBuffer,
+                            from connection: AVCaptureConnection) {
+        let reason = CMGetAttachment(sampleBuffer,
+                                     key: kCMSampleBufferAttachmentKey_DroppedFrameReason,
+                                     attachmentModeOut: nil) as? String
+        print("NOTICE: Dropped reason =", reason ?? "n/a")
+    }
+    
     // AVCaptureVideoDataOutputSampleBufferDelegate Protocol
     // AVCaptureAudioDataOutputSampleBufferDelegate Protocol
     open func captureOutput(_ captureOutput: AVCaptureOutput,
@@ -407,6 +431,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         
         // Query SampleBuffer Information
         let bufferReady = CMSampleBufferDataIsReady(sampleBuffer)
+        
+        // Check discontinuity
+        _ = checkDiscontinuity(sampleBuffer) // Ignore any error
         
         /* ============================================ */
         
@@ -519,7 +546,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                         print("ERROR: Internal error - No decompressor is ready.")
                     }
                 } else {
-                    writeVideoSampleBuffer(sampleBuffer)
+                    writeVideoSampleBuffer(sampleBuffer, resample: encodeVideo)
                 }
                 
                 // Timecode track support
@@ -589,6 +616,89 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 //print("ERROR: AVAssetWriterInputTimecode is not ready to append.")
             }
         }
+    }
+    
+    private func writeVideoSampleBuffer(_ srcSampleBuffer: CMSampleBuffer, resample flag: Bool) {
+        if flag == false {
+            writeVideoSampleBuffer(srcSampleBuffer)
+            return
+        }
+        
+        // Debug assertion
+        guard let duration = resampleDuration, CMTIME_IS_NUMERIC(duration), duration.seconds > 0
+        else {
+            print("NOTICE: Invalid resampleDuration is detected.")
+            writeVideoSampleBuffer(srcSampleBuffer)
+            return
+        }
+        
+        // Set initial Current/Next PTS
+        let srcStart = CMSampleBufferGetPresentationTimeStamp(srcSampleBuffer)
+        let srcEnd = srcStart + CMSampleBufferGetDuration(srcSampleBuffer)
+        if resampleCurrentPTS == nil {
+            // use PTS from source sampleBuffer as start point of new PTS
+            resampleCurrentPTS = srcStart
+            resampleNextPTS = srcStart + duration
+        }
+        
+        // read resample properties
+        var current = resampleCurrentPTS!
+        var next = resampleNextPTS!
+        
+        while current < srcEnd {
+            if next <= srcEnd {
+                // current < next < srcEnd
+                // Emit: write sample using either last source or current source samplebuffer.
+                
+                var newSampleBuffer :CMSampleBuffer? = nil
+                newSampleBuffer = resample((resampleCaptured ?? srcSampleBuffer), current, duration)
+                if let newSampleBuffer = newSampleBuffer {
+                    writeVideoSampleBuffer(newSampleBuffer)
+                } else {
+                    print("ERROR: Failed to resample using new TimeingInfo")
+                }
+                
+                // Relase resampleSourceBuffer (set nil)
+                resampleCaptured = nil
+                
+                // recalculate resample PTS
+                current = next
+                next = current + duration
+            } else {
+                // current < srcEnd < next
+                // Capture: update last sample with current source samplebuffer
+
+                if resampleCaptured == nil {
+                    var captured :CMSampleBuffer? = nil
+                    let err = CMSampleBufferCreateCopy(allocator: kCFAllocatorDefault,
+                                                       sampleBuffer: srcSampleBuffer,
+                                                       sampleBufferOut: &captured)
+                    if let captured = captured {
+                        resampleCaptured = captured
+                    } else {
+                        print("ERROR: Failed to create copy of CMSampleBuffer(\(err)")
+                    }
+                }
+                break
+            }
+        }
+        
+        // update resample properties
+        resampleCurrentPTS = current
+        resampleNextPTS = next
+    }
+    
+    private func resample( _ source: CMSampleBuffer, _ start: CMTime, _ duration: CMTime) -> CMSampleBuffer? {
+        var newSampleBuffer :CMSampleBuffer? = nil
+        var newTimingInfo = CMSampleTimingInfo(duration: duration,
+                                               presentationTimeStamp: start,
+                                               decodeTimeStamp: CMTime.invalid)
+        CMSampleBufferCreateCopyWithNewTiming(allocator: kCFAllocatorDefault,
+                                              sampleBuffer: source,
+                                              sampleTimingEntryCount: 1,
+                                              sampleTimingArray: &newTimingInfo,
+                                              sampleBufferOut: &newSampleBuffer)
+        return newSampleBuffer
     }
     
     /* ======================================================================================== */
@@ -869,7 +979,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         if let decompressor = decompressor {
             if decompressor.isReady() {
                 decompressor.writeDecompressed = { [unowned self] (sampleBuffer) in
-                    self.writeVideoSampleBuffer(sampleBuffer)
+                    self.writeVideoSampleBuffer(sampleBuffer, resample: true)
                 }
                 return true
             } else {
@@ -893,4 +1003,34 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return cgSize
     }
     
+    private func checkDiscontinuity(_ sampleBuffer: CMSampleBuffer) -> Bool {
+        var gapDetected = false
+        if let fd = CMSampleBufferGetFormatDescription(sampleBuffer) {
+            let sequence = CMIOSampleBufferGetSequenceNumber(sampleBuffer)
+            let discontinuity = CMIOSampleBufferGetDiscontinuityFlags(sampleBuffer)
+            
+            let mediaType = CMFormatDescriptionGetMediaType(fd)
+            switch mediaType {
+            case kCMMediaType_Video:
+                let expected = CMIOGetNextSequenceNumber(lastSeqVideo)
+                if discontinuity != kCMIOSampleBufferNoDiscontinuities || sequence != expected {
+                    gapDetected = true
+                    print("ERROR:AVCaptureVideoDataOutput:",
+                          "discontinuity:\(discontinuity), expected:\(expected), actual:\(sequence)")
+                }
+                lastSeqVideo = sequence
+            case kCMMediaType_Audio:
+                let expected = CMIOGetNextSequenceNumber(lastSeqAudio)
+                if discontinuity != kCMIOSampleBufferNoDiscontinuities || sequence != expected {
+                    gapDetected = true
+                    print("ERROR:AVCaptureAudioDataOutput:",
+                          "discontinuity:\(discontinuity), expected:\(expected), actual:\(sequence)")
+                }
+                lastSeqAudio = sequence
+            default:
+                break
+            }
+        }
+        return gapDetected
+    }
 }
