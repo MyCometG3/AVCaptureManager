@@ -129,7 +129,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     internal var previewAudioOutput : AVCaptureAudioPreviewOutput? = nil
     internal var previewVideoLayer : AVCaptureVideoPreviewLayer? = nil
-    internal var previewVideoConnection : AVCaptureConnection? = nil
     
     internal var _volume : Float = 1.0
     
@@ -240,7 +239,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         captureAudioDataOutput = nil
         
         // Release objects (session)
-        previewVideoConnection = nil
         previewVideoLayer = nil
         previewAudioOutput = nil
         
@@ -286,29 +284,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     open func setVideoPreviewConnection(enabled state: Bool) {
         // NOTE: This func seems heavy operation for previewVideo - previewAudio could got stuttering
-        #if true
+        if let previewVideoLayer = previewVideoLayer {
+            let previewVideoConnection = previewVideoLayer.connection
             if let connection = previewVideoConnection {
                 if connection.isEnabled != state {
                     connection.isEnabled = state
                 }
             }
-        #else
-            if  let session = captureSession,
-                let layer = previewVideoLayer,
-                let connection = previewVideoConnection
-            {
-                if state && layer.connection == nil {
-                    session.beginConfiguration()
-                    session.addConnection(connection)
-                    session.commitConfiguration()
-                }
-                if !state && layer.connection != nil {
-                    session.beginConfiguration()
-                    session.removeConnection(connection)
-                    session.commitConfiguration()
-                }
-            }
-        #endif
+        }
     }
     
     /* ======================================================================================== */
@@ -722,9 +705,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         if let captureSession = captureSession {
             //
             previewVideoLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-            previewVideoConnection = previewVideoLayer?.connection
-            
-            if previewVideoLayer != nil && previewVideoConnection != nil {
+            if let layer = previewVideoLayer, layer.connection != nil {
                 return true
             }
         }
