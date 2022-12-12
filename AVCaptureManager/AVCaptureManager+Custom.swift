@@ -546,7 +546,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                         print("ERROR: Internal error - No decompressor is ready.")
                     }
                 } else {
-                    writeVideoSampleBuffer(sampleBuffer, resample: encodeVideo)
+                    writeVideoSampleBufferResampled(sampleBuffer)
                 }
                 
                 // Timecode track support
@@ -618,21 +618,17 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
-    private func writeVideoSampleBuffer(_ srcSampleBuffer: CMSampleBuffer, resample flag: Bool) {
+    private func writeVideoSampleBufferResampled(_ srcSampleBuffer: CMSampleBuffer) {
+        let flag = (resampleDuration != nil &&
+                    CMTIME_IS_NUMERIC(resampleDuration!) &&
+                    resampleDuration!.seconds > 0)
         if flag == false {
             writeVideoSampleBuffer(srcSampleBuffer)
             return
         }
         
-        // Debug assertion
-        guard let duration = resampleDuration, CMTIME_IS_NUMERIC(duration), duration.seconds > 0
-        else {
-            print("NOTICE: Invalid resampleDuration is detected.")
-            writeVideoSampleBuffer(srcSampleBuffer)
-            return
-        }
-        
         // Set initial Current/Next PTS
+        let duration = resampleDuration!
         let srcStart = CMSampleBufferGetPresentationTimeStamp(srcSampleBuffer)
         let srcEnd = srcStart + CMSampleBufferGetDuration(srcSampleBuffer)
         if resampleCurrentPTS == nil {
@@ -979,7 +975,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         if let decompressor = decompressor {
             if decompressor.isReady() {
                 decompressor.writeDecompressed = { [unowned self] (sampleBuffer) in
-                    self.writeVideoSampleBuffer(sampleBuffer, resample: true)
+                    self.writeVideoSampleBufferResampled(sampleBuffer)
                 }
                 return true
             } else {

@@ -95,9 +95,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var usePreset : Bool = false
     open var exportPreset : AVCaptureSession.Preset = .high
     
-    // Set before openSession() - usePreset=false
-    open var sampleDurationVideo : CMTime? = nil
-    
     // Set before startRecording(to:) - usePreset=false
     open var encodeVideo : Bool = true
     open var encodeAudio : Bool = true
@@ -107,6 +104,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var clapHOffset : Int = 0
     open var clapVOffset : Int = 0
     internal (set) public var videoSize : CGSize? = nil
+    open var sampleDurationVideo : CMTime? = nil
     open var sampleTimescaleVideo : CMTimeScale = 0
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
 
