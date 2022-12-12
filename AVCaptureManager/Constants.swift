@@ -3,7 +3,7 @@
 //  AVCaptureManager
 //
 //  Created by Takashi Mochizuki on 2016/08/07.
-//  Copyright © 2016年 MyCometG3. All rights reserved.
+//  Copyright © 2016-2022年 MyCometG3. All rights reserved.
 //
 /*
  Redistribution and use in source and binary forms, with or without
@@ -34,11 +34,14 @@ import AVFoundation
 
 public enum VideoStyle : String {
     case SD_640_480_Full    = "SD 640:480 Full"     // square pixel
+    case SD_640_486_Full    = "SD 640:486 Full"     // square pixel
     case SD_768_576_Full    = "SD 768:576 Full"     // square pixel
     case HD_1280_720_Full   = "HD 1280:720 Full"    // square pixel
     case HD_1920_1080_Full  = "HD 1920:1080 Full"   // square pixel
     case SD_720_480_4_3     = "SD 720:480 4:3"      // clap - non square pixel
     case SD_720_480_16_9    = "SD 720:480 16:9"     // clap - non square pixel
+    case SD_720_486_4_3     = "SD 720:486 4:3"      // clap - non square pixel
+    case SD_720_486_16_9    = "SD 720:486 16:9"     // clap - non square pixel
     case SD_720_576_4_3     = "SD 720:576 4:3"      // clap - non square pixel
     case SD_720_576_16_9    = "SD 720:576 16:9"     // clap - non square pixel
     case HD_1920_1080_16_9  = "HD 1920:1080 16:9"   // clap - square pixel
@@ -48,6 +51,8 @@ public enum VideoStyle : String {
     case SD_625_13_5MHz_4_3    = "625 13.5MHz 4:3"  // clap - non square pixel
     case SD_625_13_5MHz_16_9   = "625 13.5MHz 16:9" // clap - non square pixel
     case HDV_HDCAM          = "HDV/HDCAM"           // clap - non square pixel
+    
+    case UHD4k_3840_2160_Full  = "UHD4k 3840:2160 Full"   // square pixel
     
     public func settings(
             hOffset horizontalOffset: Int,
@@ -71,6 +76,10 @@ public enum VideoStyle : String {
             encodedWidth = 640;     encodedHeight = 480
             visibleWidth = 640;     visibleHeight = 480
             aspectHorizontal = 1;   aspectVertical = 1
+        case .SD_640_486_Full:      // SD 640:486 square pixel fullsize
+            encodedWidth = 640;     encodedHeight = 486
+            visibleWidth = 640;     visibleHeight = 486
+            aspectHorizontal = 1;   aspectVertical = 1
         case .SD_768_576_Full:      // SD 768:576 square pixel fullsize
             encodedWidth = 768;     encodedHeight = 576
             visibleWidth = 768;     visibleHeight = 576
@@ -83,12 +92,21 @@ public enum VideoStyle : String {
             encodedWidth = 1280;    encodedHeight = 720
             visibleWidth = 1280;    visibleHeight = 720
             aspectHorizontal = 1;   aspectVertical = 1
+            
         case .SD_720_480_4_3:       // Digital 525 4:3
             encodedWidth = 720;     encodedHeight = 480
             visibleWidth = 704;     visibleHeight = 480
             aspectHorizontal = 10;  aspectVertical = 11
         case .SD_720_480_16_9:      // Digital 525 16:9
             encodedWidth = 720;     encodedHeight = 480
+            visibleWidth = 704;     visibleHeight = 480
+            aspectHorizontal = 40;  aspectVertical = 33
+        case .SD_720_486_4_3:       // Digital 525 4:3
+            encodedWidth = 720;     encodedHeight = 486
+            visibleWidth = 704;     visibleHeight = 480
+            aspectHorizontal = 10;  aspectVertical = 11
+        case .SD_720_486_16_9:      // Digital 525 16:9
+            encodedWidth = 720;     encodedHeight = 486
             visibleWidth = 704;     visibleHeight = 480
             aspectHorizontal = 40;  aspectVertical = 33
         case .SD_720_576_4_3:       // Digital 625 4:3
@@ -99,6 +117,7 @@ public enum VideoStyle : String {
             encodedWidth = 720;     encodedHeight = 576
             visibleWidth = 704;     visibleHeight = 576
             aspectHorizontal = 16;  aspectVertical = 11
+            
         case .HD_1920_1080_16_9:    // 1125-line (1920x1080) HDTV
             encodedWidth = 1920;    encodedHeight = 1080
             visibleWidth = 1888;    visibleHeight = 1062
@@ -107,6 +126,7 @@ public enum VideoStyle : String {
             encodedWidth = 1280;    encodedHeight = 720
             visibleWidth = 1248;    visibleHeight = 702
             aspectHorizontal = 1;   aspectVertical = 1
+            
         case .SD_525_13_5MHz_4_3:   // 525-line 13.5MHz Sampling 4:3
             encodedWidth = 720;     encodedHeight = 486
             visibleWidth = 704;     visibleHeight = 480
@@ -123,10 +143,16 @@ public enum VideoStyle : String {
             encodedWidth = 720;     encodedHeight = 576
             visibleWidth = 768.0*(54.0/59.0); visibleHeight = 576
             aspectHorizontal = 118;  aspectVertical = 81
+            
         case .HDV_HDCAM:            // HDV / HDCAM 16:9
             encodedWidth = 1440;    encodedHeight = 1080
             visibleWidth = 1416;    visibleHeight = 1062
             aspectHorizontal = 4;   aspectVertical = 3
+            
+        case .UHD4k_3840_2160_Full: // 4K UHD FullAperture
+            encodedWidth = 3840;    encodedHeight = 2160
+            visibleWidth = 3840;    visibleHeight = 2160
+            aspectHorizontal = 1;   aspectVertical = 1
         }
         
         videoOutputSettings[AVVideoWidthKey] = encodedWidth
@@ -170,7 +196,7 @@ public enum VideoStyle : String {
                 AVVideoTransferFunctionKey : AVVideoTransferFunction_ITU_R_709_2,
                 AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_601_4
             ]
-        } else {
+        } else if encodedHeight <= 1125 {
             // HD (Rec. 709)
             //   1920x1080 HDTV (SMPTE 274M-1995)
             //   1280x720 HDTV (SMPTE 296M-1997)
@@ -178,6 +204,14 @@ public enum VideoStyle : String {
                 AVVideoColorPrimariesKey : AVVideoColorPrimaries_ITU_R_709_2,
                 AVVideoTransferFunctionKey : AVVideoTransferFunction_ITU_R_709_2,
                 AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_709_2
+            ]
+        } else {
+            // UHD (Rec. 2020)
+            //   3840x2160 UHDTV (Rec. ITU-R BT. 2020)
+            videoOutputSettings[AVVideoColorPropertiesKey] = [
+                AVVideoColorPrimariesKey : AVVideoColorPrimaries_ITU_R_2020,
+                AVVideoTransferFunctionKey : AVVideoTransferFunction_ITU_R_709_2,
+                AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_2020
             ]
         }
         
