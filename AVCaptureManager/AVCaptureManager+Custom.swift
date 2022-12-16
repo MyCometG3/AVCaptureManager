@@ -47,12 +47,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         captureVideoDataOutput = AVCaptureVideoDataOutput()
         if let captureVideoDataOutput = captureVideoDataOutput, let captureSession = captureSession {
             // Register video setting
-            if decompress == false {
+            if decompress == false || videoDeviceDecompressedFormat.count == 0 {
                 // No transcode required (device native format)
                 captureVideoDataOutput.videoSettings = [:]
             } else {
                 // Transcode required (default decompressed format)
-                captureVideoDataOutput.videoSettings = nil
+                captureVideoDataOutput.videoSettings = videoDeviceDecompressedFormat
             }
             
             // Register dispatch queue for video
@@ -167,7 +167,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                                                              outputSettings: nil)
             } else {
                 // Create OutputSettings for Video (Compress)
-                let videoOutputSettings : [String:Any] = createOutputSettingsVideo()
+                if videoDeviceCompressedFormat.count == 0 {
+                    videoDeviceCompressedFormat = prepareOutputSettingsVideo(nil)
+                }
+                let videoOutputSettings : [String:Any] = videoDeviceCompressedFormat
                 
                 // Validate settings for Video
                 if avAssetWriter.canApply(outputSettings: videoOutputSettings, forMediaType: AVMediaType.video) {
@@ -322,7 +325,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
-    private func createOutputSettingsVideo() -> [String:Any] {
+    private func prepareOutputSettingsVideo(_ sampleBuffer: CMSampleBuffer?) -> [String:Any] {
         // Create OutputSettings for Video (Compress)
         var videoOutputSettings : [String:Any] = [:]
         
@@ -338,28 +341,60 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         
         // video output codec
         if encodeProRes422 {
-            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecType.proRes422
+            // TODO: Allow user to choose ProRes compressor
+            let codec :AVVideoCodecType = .proRes422
+            videoOutputSettings[AVVideoCodecKey] = codec
             
-            //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422HQ)
-            //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422)
-            //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422LT)
-            //videoOutputSettings[AVVideoCodecKey] = fourCharString(kCMVideoCodecType_AppleProRes422Proxy)
         } else {
-            videoOutputSettings[AVVideoCodecKey] = AVVideoCodecType.h264
+            // TODO: Allow user to choose General compressor
+            let codec :AVVideoCodecType = .h264
+            videoOutputSettings[AVVideoCodecKey] = codec
             
-            #if false
-                // For H264 encoder (using Main 3.1 maximum bitrate)
-                videoOutputSettings[AVVideoCompressionPropertiesKey] = [
-                    AVVideoAverageBitRateKey : 14*1000*1000,
-                    AVVideoMaxKeyFrameIntervalKey : 29,
-                    AVVideoMaxKeyFrameIntervalDurationKey : 1.0,
+            var compressionProperties :[String:Any] = [:]
+            if codec == .h264 {
+                // For H264 encoder; Maximum video bitrate per Profile_Level
+                let maxRate = [
+                    "MP_30": 10.0*1000*1000, "HiP_30": 12.5*1000*1000,
+                    "MP_31": 14.0*1000*1000, "HiP_31": 17.5*1000*1000,
+                    "MP_32": 20.0*1000*1000, "HiP_32": 25.0*1000*1000,
+                    "MP_40": 20.0*1000*1000, "HiP_40": 25.0*1000*1000,
+                    "MP_41": 50.0*1000*1000, "HiP_41": 62.5*1000*1000,
+                    "MP_42": 50.0*1000*1000, "HiP_42": 62.5*1000*1000,
+                    "MP_50":135.0*1000*1000, "HiP_50":168.75*1000*1000,
+                    "MP_51":240.0*1000*1000, "HiP_51":300.0*1000*1000,
+                ]
+                
+                // TODO: Allow user to choose parameters
+                let bitrate:Int = Int( maxRate["MP_40"]! )
+                let profile:String = AVVideoProfileLevelH264MainAutoLevel
+                compressionProperties = [
+                    AVVideoAverageBitRateKey : bitrate,
+                    AVVideoMaxKeyFrameIntervalKey : 60,
+                    AVVideoMaxKeyFrameIntervalDurationKey : 2.0,
                     AVVideoAllowFrameReorderingKey : true,
-                    AVVideoProfileLevelKey : AVVideoProfileLevelH264Main31,
+                    AVVideoProfileLevelKey : profile,
                     AVVideoH264EntropyModeKey : AVVideoH264EntropyModeCABAC,
-                    AVVideoExpectedSourceFrameRateKey : 30,
+                    //AVVideoExpectedSourceFrameRateKey : 30,
                     //AVVideoAverageNonDroppableFrameRateKey : 10,
                 ]
-            #endif
+            }
+            
+            // Source Frame Rate hint
+            var srcFPS:Double = 30.0
+            if let duration = sampleDurationVideo { // Resample enabled
+                assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
+                srcFPS = Double(duration.timescale)/Double(duration.value)
+            } else if let sb = sampleBuffer {
+                let duration = CMSampleBufferGetDuration(sb)
+                assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
+                srcFPS = Double(duration.timescale)/Double(duration.value)
+            }
+            compressionProperties[AVVideoExpectedSourceFrameRateKey] = NSNumber(value: srcFPS)
+            
+            //
+            if compressionProperties.count > 0 {
+                videoOutputSettings[AVVideoCompressionPropertiesKey] = compressionProperties
+            }
         }
         
         // Check if user want to customize settings
@@ -367,6 +402,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             // Call optional updateVideoSettings block
             videoOutputSettings = updateVideoSettings(videoOutputSettings)
         }
+        assert(videoOutputSettings.count > 0)
         
         return videoOutputSettings
     }
@@ -447,6 +483,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         
         /* ============================================ */
         
+        // Create default compression setting using input sample properties
+        if forVideo && encodeVideo && videoDeviceCompressedFormat.count == 0 {
+            videoDeviceCompressedFormat = prepareOutputSettingsVideo(sampleBuffer)
+        }
         if forAudio && encodeAudio && audioDeviceCompressedFormat.count == 0 {
             // Create default compression setting using input sample properties
             createCompressionSettingAudio(sampleBuffer)
