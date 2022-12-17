@@ -521,8 +521,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     private func startSession() -> Bool {
         if let captureSession = captureSession {
             if (captureSession.isRunning == false) {
-                // Reset video encoded size
-                videoSize = nil
                 
                 //
                 captureSession.startRunning()
@@ -541,9 +539,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             if captureSession.isRunning {
                 //
                 captureSession.stopRunning()
-                
-                // Reset video encoded size
-                videoSize = nil
             } else {
                 // print("ERROR: Capture session is not running.")
             }
@@ -605,6 +600,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                         }
                     }
                     
+                    videoSize = CGSize(width: Double(dimensions.width),
+                                       height: Double(dimensions.height))
                     return true
                 } catch {
                     captureDeviceVideo.unlockForConfiguration()
