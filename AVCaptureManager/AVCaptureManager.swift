@@ -95,6 +95,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var useMuxed : Bool = false
     open var usePreset : Bool = false
     open var exportPreset : AVCaptureSession.Preset = .high
+    open var debugObserver : Bool = false
     
     // Set before startRecording(to:) - usePreset=false
     // NOTE: Use resetCompressionSettings() to reflect changes of following
@@ -140,6 +141,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     internal var lastSeqVideo : UInt64 = kCMIOInvalidSequenceNumber         // Custom
     internal var lastSeqAudio : UInt64 = kCMIOInvalidSequenceNumber         // Custom
+    
+    internal var observers:[NSObjectProtocol] = []
     
     /* ======================================================================================== */
     // MARK: - internal variables - recording
@@ -252,6 +255,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         captureDeviceAudio = nil
         
         captureSession = nil
+        
+        // Unregister Notification Observers
+        unregisterObserver()
         
         // Reset other private parameters (recording)
         _duration = 0.0
@@ -463,6 +469,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         // Init AVCaptureSession
         captureSession = AVCaptureSession()
         if let captureSession = captureSession {
+            registerObserver()
+            
             captureSession.beginConfiguration()
             
             /* ============================================ */
@@ -793,6 +801,47 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     /* ======================================================================================== */
     // MARK: - private support func
     /* ======================================================================================== */
+    
+    private func registerObserver() {
+        guard debugObserver else { return }
+        
+        print("registerObserver()")
+        if let captureSession = captureSession {
+            let center = NotificationCenter.default
+            let queue = OperationQueue.main
+            let handler:(Notification) -> Void = { (notification) in
+                let log = notification.debugDescription
+                NSLog("Notification: %@", log)
+            }
+            
+            let notificationNames:[Notification.Name] = [
+                .AVCaptureSessionRuntimeError,
+                .AVCaptureSessionDidStopRunning,
+                .AVCaptureSessionDidStartRunning,
+                .AVCaptureSessionWasInterrupted,
+                .AVCaptureSessionInterruptionEnded,
+                .AVCaptureDeviceWasConnected,
+                .AVCaptureDeviceWasDisconnected,
+            ]
+            observers = []
+            notificationNames.forEach {
+                let observer = center.addObserver(forName: $0, object: captureSession,
+                                                  queue: queue, using: handler)
+                observers.append(observer)
+            }
+        }
+    }
+    
+    private func unregisterObserver() {
+        guard observers.count > 0 else { return }
+        
+        print("unregisterObserver()")
+        let center = NotificationCenter.default
+        observers.forEach {
+            center.removeObserver($0)
+        }
+        observers = []
+    }
     
     internal func descriptionForStatus(_ status :AVAssetWriter.Status) -> String {
         // In case of faulty state
