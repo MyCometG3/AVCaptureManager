@@ -107,33 +107,6 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return false
     }
     
-    /// Attach Captured Movie File Output using session preset
-    /// - Parameter preset: session preset
-    /// - Returns: true if no error
-    internal func addMovieFileOutput(_ preset: AVCaptureSession.Preset) -> Bool {
-        if let captureSession = captureSession {
-            captureMovieFileOutput = AVCaptureMovieFileOutput()
-            if let captureMovieFileOutput = captureMovieFileOutput {
-                // Define Captured Movie File Output
-                if captureSession.canAddOutput(captureMovieFileOutput) {
-                    captureSession.addOutput(captureMovieFileOutput)
-                    
-                    // Apply session preset
-                    if captureSession.canSetSessionPreset(preset) {
-                        captureSession.sessionPreset = preset
-                        return true
-                    } else {
-                        print("ERROR: Failed to set SessionPreset \(preset).")
-                        return false
-                    }
-                }
-            }
-        }
-        
-        print("ERROR: Failed to addMovieFileOutput().")
-        return false
-    }
-    
     /* ======================================================================================== */
     // MARK: - internal/private recording control
     /* ======================================================================================== */
@@ -912,4 +885,22 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
         return gapDetected
     }
+    
+    /// Translate AVAssetWriter Status into String
+    /// - Parameter status: AVAssetWriter.Status
+    /// - Returns: String result
+    private func descriptionForStatus(_ status :AVAssetWriter.Status) -> String {
+        // In case of faulty state
+        let statusArray : [AVAssetWriter.Status : String] = [
+            .unknown    : "AVAssetWriter.Status.Unknown",
+            .writing    : "AVAssetWriter.Status.Writing",
+            .completed  : "AVAssetWriter.Status.Completed",
+            .failed     : "AVAssetWriter.Status.Failed",
+            .cancelled  : "AVAssetWriter.Status.Cancelled"
+        ]
+        let statusStr :String = statusArray[status]!
+        
+        return statusStr
+    }
+    
 }

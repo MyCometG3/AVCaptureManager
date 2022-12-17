@@ -39,14 +39,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - public variables
     /* ======================================================================================== */
     
-    // preview video : CALayer
+    /// preview video : CALayer
     open var previewLayer : AVCaptureVideoPreviewLayer? {
         get {
             return previewVideoLayer
         }
     }
     
-    // preview audio : Volume in 0.0 - 1.0 : Float.
+    /// preview audio : Volume in 0.0 - 1.0 : Float.
     open var volume : Float {
         get {
             return _volume
@@ -61,14 +61,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
-    // recording duration in second : Float64.
+    /// recording duration in second : Float64.
     open var duration : Float64 {
         get {
             return _duration
         }
     }
     
-    // query current video deviceID
+    /// query current video deviceID
     open var currentDeviceIDVideo : String? {
         get {
             var deviceID : String? = nil
@@ -79,7 +79,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
-    // query current audio deviceID
+    /// query current audio deviceID
     open var currentDeviceIDAudio : String? {
         get {
             var deviceID : String? = nil
@@ -90,30 +90,51 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
-    // Set before openSession()
-    // NOTE: Stop/Start session to reflect changes of following
+    // MARK: -
+    /*
+     * Set before openSession()
+     * NOTE: Use closeSession()/openSession() to reflect changes of following
+     */
+    /// Special flag for muxed stream (Video/Audio muxed). e.g. DV devices
     open var useMuxed : Bool = false
+    /// Choose either "AVFoundation's session preset" or "custom compression".
     open var usePreset : Bool = false
+    /// Preset for capture session
     open var exportPreset : AVCaptureSession.Preset = .high
+    /// Debug support - notification
     open var debugObserver : Bool = false
     
-    // Set before startRecording(to:) - usePreset=false
-    // NOTE: Use resetCompressionSettings() to reflect changes of following
+    // MARK: -
+    /*
+     * Set before startRecording(to:)
+     * Set usePreset=false
+     * NOTE: Use resetCompressionSettings() to reflect changes of following
+     */
+    /// Enable VideoTranscode or not
     open var encodeVideo : Bool = true
+    /// Enable AudioTranscode or not
     open var encodeAudio : Bool = true
+    /// Request deinterlace of input video (depends on decoder feature)
     open var encodeDeinterlace : Bool = true
+    /// Choose ProRes or H.264 for VideoTranscode
     open var encodeProRes422 : Bool = true
+    /// VideoStyle for encodeVideo==true
     private (set) public var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
+    /// Clean aperture offset - Horizontal
     private (set) public var clapHOffset : Int = 0
+    /// Clean aperture offset - Vertical
     private (set) public var clapVOffset : Int = 0
+    /// video dimension from input device
     internal (set) public var videoSize : CGSize? = nil
+    /// Video resampling support
     open var sampleDurationVideo : CMTime? = nil
+    /// Video track timeScale like 30000, 50000, 60000 (per sec)
     open var sampleTimescaleVideo : CMTimeScale = 0
+    /// TimeCode track support
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
-
-    // Called when compression settings are regenerated.
-    // Possible when first sampleBuffer is received/after resetCompressionSettings()/start recording
+    /// Callback support to verify/modify for video compression setting
     open var updateVideoSettings : (([String:Any]) -> [String:Any])? = nil
+    /// Callback support to verify/modify for audio compression setting
     open var updateAudioSettings : (([String:Any]) -> [String:Any])? = nil
     
     /* ======================================================================================== */
@@ -181,6 +202,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - public session API
     /* ======================================================================================== */
     
+    /// Verify if capture session is ready (ready to capture)
+    /// - Returns: true if ready
     open func isReady() -> Bool {
         if let captureSession = captureSession {
             return captureSession.isRunning
@@ -188,10 +211,19 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Open capture session using default video/audio devices
+    /// - Returns: true if no error
     open func openSession() -> Bool {
         return openSessionForUniqueID(muxed: nil, video: nil, audio: nil)
     }
     
+    /// Open capture session using specified uniqueID devices.
+    /// If device is not available default device will be used instead.
+    /// - Parameters:
+    ///   - muxedID: muxed device uniqueID
+    ///   - videoID: video device uniqueID
+    ///   - audioID: audio device uniqueID
+    /// - Returns: true if no error
     open func openSessionForUniqueID(muxed muxedID:String?,
                                      video videoID:String?,
                                      audio audioID:String?) -> Bool {
@@ -219,6 +251,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Close capture session completely
     open func closeSession() {
         // Stop recording session
         if isRecording() {
@@ -294,6 +327,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         videoSize = nil
     }
     
+    /// Toggle video preview connection
+    /// - Parameter state: Enabled/Disabled state
     open func setVideoPreviewConnection(enabled state: Bool) {
         // NOTE: This func seems heavy operation for previewVideo - previewAudio could got stuttering
         if let previewVideoLayer = previewVideoLayer {
@@ -310,10 +345,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - public recording API
     /* ======================================================================================== */
     
+    /// Verify if recording is running
+    /// - Returns: true if recording, false if not
     open func isRecording() -> Bool {
         return isWriting
     }
     
+    /// Start recording on current capture session
+    /// - Parameter url: file URL to write movie
     open func startRecording(to url: URL) {
         // check if session is running
         if isReady() == false {
@@ -360,6 +399,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
+    /// Stop recording on current capture session
     open func stopRecording() {
         // check if session is running
         if isReady() == false {
@@ -421,6 +461,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - private session control
     /* ======================================================================================== */
     
+    /// Prepare capture session
+    /// - Returns: true if no error
     private func prepareSession() -> Bool {
         var inputReady = false
         var outputReady = false
@@ -518,10 +560,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
+    /// Start capture session
+    /// - Returns: true if no error
     private func startSession() -> Bool {
         if let captureSession = captureSession {
             if (captureSession.isRunning == false) {
-                
                 //
                 captureSession.startRunning()
             } else {
@@ -534,6 +577,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Stop capture session
+    /// - Returns: true if no error
     private func stopSession() -> Bool {
         if let captureSession = captureSession {
             if captureSession.isRunning {
@@ -553,6 +598,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - private session configuration
     /* ======================================================================================== */
     
+    /// Prepare decompressed settings for Video Input
+    /// - Returns: true if no error
     private func chooseVideoDeviceFormat() -> Bool {
         // For video; Choose larger format, and fixed sample duration if requested
         if let captureDeviceVideo = captureDeviceVideo {
@@ -614,6 +661,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Prepare decompressed settings for Audio Input
+    /// - Returns: true if no error
     private func chooseAudioDeviceFormat() -> Bool {
         // For audio; Choose higher sample rate and multi channel
         if let captureDeviceAudio = captureDeviceAudio {
@@ -707,6 +756,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Attach Audio/Video input device to capture session
+    /// - Returns: true if no error
     private func addCaptureDeviceInput() -> Bool {
         if let captureSession = captureSession {
             if let captureDeviceAudio = captureDeviceAudio {
@@ -746,6 +797,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Attach Audio Preview to capture session
+    /// - Returns: true if no error
     private func addPreviewAudioOutput() -> Bool {
         if let captureSession = captureSession {
             previewAudioOutput = AVCaptureAudioPreviewOutput()
@@ -764,6 +817,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Attach Video Preview to capture session
+    /// - Returns: true if no error
     private func addPreviewVideoLayer() -> Bool {
         if let captureSession = captureSession {
             //
@@ -777,18 +832,54 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         return false
     }
     
+    /// Attach Captured Movie File Output using session preset
+    /// - Parameter preset: session preset
+    /// - Returns: true if no error
+    private func addMovieFileOutput(_ preset: AVCaptureSession.Preset) -> Bool {
+        if let captureSession = captureSession {
+            captureMovieFileOutput = AVCaptureMovieFileOutput()
+            if let captureMovieFileOutput = captureMovieFileOutput {
+                // Define Captured Movie File Output
+                if captureSession.canAddOutput(captureMovieFileOutput) {
+                    captureSession.addOutput(captureMovieFileOutput)
+                    
+                    // Apply session preset
+                    if captureSession.canSetSessionPreset(preset) {
+                        captureSession.sessionPreset = preset
+                        return true
+                    } else {
+                        print("ERROR: Failed to set SessionPreset \(preset).")
+                        return false
+                    }
+                }
+            }
+        }
+        
+        print("ERROR: Failed to addMovieFileOutput().")
+        return false
+    }
+    
     /* ======================================================================================== */
     // MARK: - capture delegate protocol
     /* ======================================================================================== */
     
-    // AVCaptureFileOutputRecordingDelegate Protocol
+    /// AVCaptureFileOutputRecordingDelegate Protocol
+    /// - Parameters:
+    ///   - captureOutput: AVCaptureFileOutput
+    ///   - fileURL: output fileURL
+    ///   - connections: AVCaptureConnection
     open func fileOutput(_ captureOutput: AVCaptureFileOutput,
                       didStartRecordingTo fileURL: URL,
                       from connections: [AVCaptureConnection]) {
         // print("NOTICE: Capture started.")
     }
     
-    // AVCaptureFileOutputRecordingDelegate Protocol
+    /// AVCaptureFileOutputRecordingDelegate Protocol
+    /// - Parameters:
+    ///   - captureOutput: AVCaptureFileOutput
+    ///   - outputFileURL: output fileURL
+    ///   - connections: AVCaptureConnection
+    ///   - error: Error result if available
     open func fileOutput(_ captureOutput: AVCaptureFileOutput,
                       didFinishRecordingTo outputFileURL: URL,
                       from connections: [AVCaptureConnection], error: Error?) {
@@ -799,6 +890,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     // MARK: - private support func
     /* ======================================================================================== */
     
+    /// Register Notification Observer
     private func registerObserver() {
         guard debugObserver else { return }
         
@@ -829,6 +921,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
+    /// Unregister Notification Observer
     private func unregisterObserver() {
         guard observers.count > 0 else { return }
         
@@ -840,36 +933,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         observers = []
     }
     
-    internal func descriptionForStatus(_ status :AVAssetWriter.Status) -> String {
-        // In case of faulty state
-        let statusArray : [AVAssetWriter.Status : String] = [
-            .unknown    : "AVAssetWriter.Status.Unknown",
-            .writing    : "AVAssetWriter.Status.Writing",
-            .completed  : "AVAssetWriter.Status.Completed",
-            .failed     : "AVAssetWriter.Status.Failed",
-            .cancelled  : "AVAssetWriter.Status.Cancelled"
-        ]
-        let statusStr :String = statusArray[status]!
-        
-        return statusStr
-    }
-    
-    internal func fourCharString(_ type :OSType) -> String {
-        let c1 : UInt32 = (type >> 24) & 0xFF
-        let c2 : UInt32 = (type >> 16) & 0xFF
-        let c3 : UInt32 = (type >>  8) & 0xFF
-        let c4 : UInt32 = (type      ) & 0xFF
-        let bytes: [CChar] = [
-            CChar( c1 == 0x00 ? 0x20 : c1),
-            CChar( c2 == 0x00 ? 0x20 : c2),
-            CChar( c3 == 0x00 ? 0x20 : c3),
-            CChar( c4 == 0x00 ? 0x20 : c4),
-            CChar(0x00)
-        ]
-        
-        return String(cString: bytes)
-    }
-    
+    /// Verify the device with specified uniqueID is available and fallback to default
+    /// - Parameters:
+    ///   - type: AVMediaType to query
+    ///   - uniqueID: uniqueID for search
+    /// - Returns: Available AVCaptureDevice
     private func availableDevice(for type:AVMediaType, uniqueID: String?) -> AVCaptureDevice? {
         if let uniqueID = uniqueID, let device = AVCaptureDevice(uniqueID: uniqueID) {
             return device

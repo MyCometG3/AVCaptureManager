@@ -75,10 +75,17 @@ class VideoDecompressor : NSObject {
     // MARK: - internal decompressor API
     /* ======================================================================================== */
     
+    /// Verify if decompressor is prepared
+    /// - Returns: true if ready
     internal func isReady() -> Bool {
         return ready
     }
     
+    /// Prepare VTDecompressionSession
+    /// - Parameters:
+    ///   - sampleBuffer: source CMSampleBuffer to decode (or decompress)
+    ///   - doDeinterlace: deinterlace flag (depends on decoder implementation)
+    /// - Returns: true if no error
     internal func prepare(source sampleBuffer: CMSampleBuffer, deinterlace doDeinterlace: Bool) -> Bool {
         // print("decompressor.prepare")
         
@@ -172,6 +179,7 @@ class VideoDecompressor : NSObject {
         return ready
     }
     
+    /// Release VTDecompressionSession
     internal func invalidate() {
         // print("decompressor.invalidate")
         
@@ -183,6 +191,9 @@ class VideoDecompressor : NSObject {
         ready = false
     }
     
+    /// Enqueue source CMSampleBuffer to decode (or decompress)
+    /// - Parameter sampleBuffer: CMSampleBuffer to decompress
+    /// - Returns: true if no error
     internal func decode(_ sampleBuffer: CMSampleBuffer) -> Bool {
         if isReady(), let session = session {
             //print("decompressor.decode")
@@ -206,7 +217,7 @@ class VideoDecompressor : NSObject {
                 // Prepare output handler using source attachments
                 let outputHandler = handler(propagate)
                 
-                // Decoompress sampleBuffer
+                // Decompress sampleBuffer
                 let valid: OSStatus = VTDecompressionSessionDecodeFrame(session,
                                                                         sampleBuffer: sampleBuffer,
                                                                         flags: decodeFlags,
@@ -227,6 +238,7 @@ class VideoDecompressor : NSObject {
         return false
     }
     
+    /// Flush decompressionSession queue
     internal func flush() {
         if isReady(), let session = session {
             //print("decompressor.flush")
@@ -249,6 +261,9 @@ class VideoDecompressor : NSObject {
     // MARK: - private VTDecompressionOutputHandler builder
     /* ======================================================================================== */
     
+    /// Decompression Output Handler
+    /// - Parameter propagate: Dictionary for propagate CMAttachments
+    /// - Returns: VTDecompressionOutputHandler
     private func handler(_ propagate: CFDictionary?) -> VTDecompressionOutputHandler {
         return { [unowned self] (
             status: OSStatus,

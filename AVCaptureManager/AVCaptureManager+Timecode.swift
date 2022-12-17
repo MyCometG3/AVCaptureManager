@@ -38,7 +38,10 @@ extension AVCaptureManager {
     /* ======================================================================================== */
     // MARK: - private Timecode support func
     /* ======================================================================================== */
-
+    
+    /// Create TimeCode CMSampleBuffer from CMIOSampleBufferAttatchment with same timingInfo as source sampleBuffer
+    /// - Parameter srcSampleBuffer: source SampleBuffer
+    /// - Returns: TimeCode CMSampleBuffer
     internal func createTimeCodeSampleBuffer(from srcSampleBuffer: CMSampleBuffer) -> CMSampleBuffer? {
         // Extract SMPTETime from source sample buffer
         guard let smpteTime = extractCVSMPTETime(from: srcSampleBuffer)
@@ -131,7 +134,10 @@ extension AVCaptureManager {
         
         return sampleBuffer
     }
-
+    
+    /// Extract CVSMPTETime CMIOSampleBufferAttachment if available
+    /// - Parameter sampleBuffer: CMSampleBuffer to inspect
+    /// - Returns: CVSMPTETime if available
     internal func extractCVSMPTETime(from sampleBuffer: CMSampleBuffer) -> CVSMPTETime? {
         /*
          NOTE: SMPTETime in CoreAudioBaseTypes.h == CVSMPTETime in CVBase.h
@@ -168,7 +174,10 @@ extension AVCaptureManager {
         
         return cvSmpteTime
     }
-
+    
+    /// Create a complete copy of SMPTETime as CVSMPTETime
+    /// - Parameter smpteTime: SMPTETime in CoreAudioBaseTypes.h
+    /// - Returns: CVSMPTETime
     private func dupSMPTEtoCV(_ smpteTime:SMPTETime) -> CVSMPTETime {
         // Create new copy of SMPTETime as CVSMPTETime,
         // as the original SMPTETime struct is backed by CFDataRef CMAttachment
@@ -183,11 +192,19 @@ extension AVCaptureManager {
                                       frames: smpteTime.mFrames)
         return cvSmpteTime
     }
-
+    
+    /// Create TimeCode CMBlockBuffer
+    /// - Parameters:
+    ///   - smpteTime: CVSMPTETime
+    ///   - sizes: size in byte for tmcd or tc64
+    ///   - quanta: quanta
+    ///   - tcType: tcType
+    /// - Returns: TimeCode CMBlockBuffer
     private func prepareTimeCodeDataBuffer(_ smpteTime: CVSMPTETime,
                                            _ sizes: Int,
                                            _ quanta: UInt32,
                                            _ tcType: UInt32) -> CMBlockBuffer?  {
+        //
         var dataBuffer: CMBlockBuffer? = nil
         var status: OSStatus = noErr
         

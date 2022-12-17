@@ -38,6 +38,7 @@ extension AVCaptureManager {
     // MARK: - public print description API
     /* ======================================================================================== */
     
+    /// (Debug) dump device info for muxed, video, and audio.
     public func listDevice() {
         let deviceInfoMuxed = devicesMuxed()
         print("\n", "AVMediaTypeMuxed: \(deviceInfoMuxed?.count ?? 0) found:")
@@ -52,27 +53,36 @@ extension AVCaptureManager {
         deviceInfoAudio?.forEach{ info in print(": ", info )}
     }
     
+    /// (Debug) device info for muxed
+    /// - Returns: devices info
     public func devicesMuxed() -> [Any]! {
         let deviceArrayInfoMuxed = deviceInfoArray(mediaType: AVMediaType.muxed)
         return deviceArrayInfoMuxed
     }
     
+    /// (Debug) device info for video
+    /// - Returns: devices info
     public func devicesVideo() -> [Any]! {
         let deviceArrayInfoVideo = deviceInfoArray(mediaType: AVMediaType.video)
         return deviceArrayInfoVideo
     }
     
+    /// (Debug) device info for audio
+    /// - Returns: devices info
     public func devicesAudio() -> [Any]! {
         let deviceArrayInfoAudio = deviceInfoArray(mediaType: AVMediaType.audio)
         return deviceArrayInfoAudio
     }
     
+    /// (Debug) device info for specified uniqueID
+    /// - Returns: devices info
     public func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {
         guard let device = AVCaptureDevice.init(uniqueID: uniqueID) else { return nil }
         let deviceInfo: [String:Any] = deviceInfo(device)
         return deviceInfo
     }
     
+    /// (Debug) dump session diag info
     public func printSessionDiag() {
         print("")
         
@@ -272,12 +282,18 @@ extension AVCaptureManager {
     // MARK: - private support func
     /* ======================================================================================== */
     
+    /// (Debug) Get supported meia type by the device
+    /// - Parameter device: AVCaptureDevice
+    /// - Returns: String representation of supported AVMediaType(s) array
     internal func mediaTypesDescription(for device:AVCaptureDevice) -> [String] {
         let array :[AVMediaType] = [.video,.audio,.text,.closedCaption,.subtitle,.timecode,.metadata,.muxed,.depthData]
         let result:[String] = array.filter{device.hasMediaType($0)}.map{$0.rawValue}
         return result
     }
     
+    /// (Debug) Get common FPS values which is supported by the device
+    /// - Parameter device: AVCaptureDevice
+    /// - Returns: String representation of supported common FPS(s) array
     internal func supportedVideoFPSDescription(for device:AVCaptureDevice) -> [String] {
         var result:[String] = []
         let formatArray = device.formats
@@ -296,6 +312,11 @@ extension AVCaptureManager {
         return result
     }
     
+    /// (Debug) Test specific sampleDuration is supported or not
+    /// - Parameters:
+    ///   - duration: duration for query
+    ///   - format: AVCaptureDevice.Format
+    /// - Returns: true if supported
     internal func validateSampleDuration(_ duration:CMTime, format:AVCaptureDevice.Format) -> Bool {
         let rangeArray: [AVFrameRateRange] = format.videoSupportedFrameRateRanges
         for range in rangeArray {
@@ -318,6 +339,9 @@ extension AVCaptureManager {
         return false
     }
     
+    /// (Debug) Device info for AVCaptureDevice
+    /// - Parameter device: AVCaptureDevice
+    /// - Returns: device info
     internal func deviceInfo(_ device: AVCaptureDevice) -> [String:Any] {
         var deviceInfo: [String:Any] = [
             "uniqueID" : device.uniqueID,
@@ -336,6 +360,9 @@ extension AVCaptureManager {
         return deviceInfo
     }
     
+    /// (Debug) device info array for specified AVMediaType
+    /// - Parameter type: AVMediaType
+    /// - Returns: device info array
     internal func deviceInfoArray(mediaType type: AVMediaType) -> [Any] {
         let deviceArray = AVCaptureDevice.devices(for: type)
         
@@ -346,6 +373,25 @@ extension AVCaptureManager {
         }
         
         return deviceInfoArray
+    }
+    
+    /// Translate OSType into String
+    /// - Parameter type: OSType
+    /// - Returns: String representation
+    internal func fourCharString(_ type :OSType) -> String {
+        let c1 : UInt32 = (type >> 24) & 0xFF
+        let c2 : UInt32 = (type >> 16) & 0xFF
+        let c3 : UInt32 = (type >>  8) & 0xFF
+        let c4 : UInt32 = (type      ) & 0xFF
+        let bytes: [CChar] = [
+            CChar( c1 == 0x00 ? 0x20 : c1),
+            CChar( c2 == 0x00 ? 0x20 : c2),
+            CChar( c3 == 0x00 ? 0x20 : c3),
+            CChar( c4 == 0x00 ? 0x20 : c4),
+            CChar(0x00)
+        ]
+        
+        return String(cString: bytes)
     }
     
 }
