@@ -196,7 +196,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                                                              outputSettings: nil)
             } else {
                 // Create OutputSettings for Audio (Compress)
-                let audioOutputSettings : [String:Any] = prepareOutputSettingsAudio()
+                if audioDeviceCompressedFormat.count == 0 {
+                    audioDeviceCompressedFormat = prepareOutputSettingsAudio(nil)
+                }
+                let audioOutputSettings : [String:Any] = audioDeviceCompressedFormat
                 
                 // Validate settings for Audio
                 if avAssetWriter.canApply(outputSettings: audioOutputSettings, forMediaType: AVMediaType.audio) {
@@ -407,28 +410,64 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return videoOutputSettings
     }
     
-    private func prepareOutputSettingsAudio() -> [String:Any] {
+    private func prepareOutputSettingsAudio(_ sampleBuffer: CMSampleBuffer?) -> [String:Any] {
         // Prepare OutputSettings for Audio (Compress)
         var audioOutputSettings : [String:Any] = [:]
         
-        if audioDeviceCompressedFormat.count == 0 {
-            // Derive some parameters from De-compressed setting
-            let srcSampleRate = audioDeviceDecompressedFormat[AVSampleRateKey]
-            let srcNumChannels = audioDeviceDecompressedFormat[AVNumberOfChannelsKey]
-            let srcAclData = audioDeviceDecompressedFormat[AVChannelLayoutKey]
-            audioOutputSettings = [
-                AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: srcSampleRate ?? Float(48000),
-                AVNumberOfChannelsKey: srcNumChannels ?? Int(2),
-                AVEncoderBitRateKey: Int(256*1024),
-                AVEncoderBitRateStrategyKey: AVAudioBitRateStrategy_Constant
-            ]
-            if let aclData = srcAclData {
-                audioOutputSettings[AVChannelLayoutKey] = aclData
+        // TODO: allow user to customize
+        let audioFormat = kAudioFormatMPEG4AAC
+        let bitRate = UInt32(256*1024)
+        let strategy = AVAudioBitRateStrategy_Constant
+        
+        // Extract AudioFormatDescription and create compressed format settings
+        if  let sampleBuffer = sampleBuffer,
+            let audioFormatDescription = CMSampleBufferGetFormatDescription(sampleBuffer),
+            let asbd_p = CMAudioFormatDescriptionGetStreamBasicDescription(audioFormatDescription)
+        {
+            var avaf: AVAudioFormat? = nil
+            var aclData: NSData? = nil
+            var layoutSize: Int = 0
+            let acl_p = CMAudioFormatDescriptionGetChannelLayout(audioFormatDescription, sizeOut: &layoutSize)
+            if let acl_p = acl_p {
+                let avacl = AVAudioChannelLayout(layout: acl_p)
+                avaf = AVAudioFormat(streamDescription:asbd_p, channelLayout: avacl)
+                aclData = NSData(bytes: UnsafeRawPointer(acl_p), length: layoutSize)
+            } else {
+                avaf = AVAudioFormat.init(streamDescription:asbd_p)
+                aclData = nil
             }
-        } else {
-            // Use auto-generated parameters from decompressed sampleBuffer
-            audioOutputSettings = audioDeviceCompressedFormat
+            
+            // Create default compressed format
+            if let avaf = avaf {
+                audioOutputSettings = [
+                    AVFormatIDKey: audioFormat,                 // UInt32
+                    AVSampleRateKey: avaf.sampleRate,           // Double
+                    AVNumberOfChannelsKey: avaf.channelCount,   // UInt32
+                    AVEncoderBitRateKey: bitRate,               // UInt32
+                    AVEncoderBitRateStrategyKey: strategy       // String
+                ]
+                if let aclData = aclData {
+                    audioOutputSettings[AVChannelLayoutKey] = aclData // NSData
+                }
+            }
+        }
+        if audioOutputSettings.count == 0 {
+            // Derive some parameters from De-compressed setting
+            let srcSampleRate = audioDeviceDecompressedFormat[AVSampleRateKey] as? Double
+            let srcNumChannels = audioDeviceDecompressedFormat[AVNumberOfChannelsKey] as? AVAudioChannelCount
+            let srcAclData = audioDeviceDecompressedFormat[AVChannelLayoutKey] as? NSData
+            if let srcSampleRate = srcSampleRate, let srcNumChannels = srcNumChannels {
+                audioOutputSettings = [
+                    AVFormatIDKey: audioFormat,                 // UInt32
+                    AVSampleRateKey: srcSampleRate ,            // Double
+                    AVNumberOfChannelsKey: srcNumChannels,      // UInt32
+                    AVEncoderBitRateKey: bitRate,               // UInt32
+                    AVEncoderBitRateStrategyKey: strategy       // String
+                ]
+                if let srcAclData = srcAclData {
+                    audioOutputSettings[AVChannelLayoutKey] = srcAclData // NSData
+                }
+            }
         }
         
         // Check if user want to customize settings
@@ -438,14 +477,17 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
         
         // Clipping for kAudioFormatMPEG4AAC
-        if audioOutputSettings[AVFormatIDKey] as! Int == Int(kAudioFormatMPEG4AAC) {
-            if (audioOutputSettings[AVSampleRateKey] as! Float) > 96000 {
-                // runs up to 96KHz
-                audioOutputSettings[AVSampleRateKey] = Float(96000)
+        if audioFormat == kAudioFormatMPEG4AAC {
+            let sampleRateMax = Double(96000.0)
+            let sampleRate = audioOutputSettings[AVSampleRateKey] as? Double
+            if let sampleRate = sampleRate, sampleRate > sampleRateMax {
+                audioOutputSettings[AVSampleRateKey] = sampleRateMax
             }
-            if (audioOutputSettings[AVEncoderBitRateKey] as! Int) > 320*1024 {
-                // runs up to 320Kbps
-                audioOutputSettings[AVEncoderBitRateKey] = 320*1024
+            
+            let bitRateMax = UInt32(320*1024)
+            let bitRate = audioOutputSettings[AVEncoderBitRateKey] as? UInt32
+            if let bitRate = bitRate, bitRate > bitRateMax {
+                audioOutputSettings[AVEncoderBitRateKey] = bitRateMax
             }
         }
         
@@ -488,8 +530,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             videoDeviceCompressedFormat = prepareOutputSettingsVideo(sampleBuffer)
         }
         if forAudio && encodeAudio && audioDeviceCompressedFormat.count == 0 {
-            // Create default compression setting using input sample properties
-            createCompressionSettingAudio(sampleBuffer)
+            audioDeviceCompressedFormat = prepareOutputSettingsAudio(sampleBuffer)
         }
         
         /* ============================================ */
@@ -713,43 +754,6 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                                               sampleTimingArray: &newTimingInfo,
                                               sampleBufferOut: &newSampleBuffer)
         return newSampleBuffer
-    }
-    
-    private func createCompressionSettingAudio(_ sampleBuffer: CMSampleBuffer) {
-        // Extract AudioFormatDescription and create compressed format settings
-        if  let audioFormatDescription = CMSampleBufferGetFormatDescription(sampleBuffer),
-            let asbd_p = CMAudioFormatDescriptionGetStreamBasicDescription(audioFormatDescription)
-        {
-            //let asbd = asbd_p.pointee
-            var avaf: AVAudioFormat? = nil
-            var aclData: NSData? = nil
-            var layoutSize: Int = 0
-            if let acl_p = CMAudioFormatDescriptionGetChannelLayout(audioFormatDescription,
-                                                                    sizeOut: &layoutSize) {
-                let avacl = AVAudioChannelLayout.init(layout: acl_p)
-                avaf = AVAudioFormat.init(streamDescription:asbd_p,
-                                          channelLayout: avacl)
-                aclData = NSData.init(bytes: UnsafeRawPointer(acl_p),
-                                      length: layoutSize)
-            } else {
-                avaf = AVAudioFormat.init(streamDescription:asbd_p)
-                aclData = nil
-            }
-            
-            // Create default compressed format
-            if let avaf = avaf {
-                audioDeviceCompressedFormat = [
-                    AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                    AVSampleRateKey: Float(avaf.sampleRate),
-                    AVNumberOfChannelsKey: Int(avaf.channelCount),
-                    AVEncoderBitRateKey: Int(256*1024),
-                    AVEncoderBitRateStrategyKey: AVAudioBitRateStrategy_Constant
-                ]
-                if let aclData = aclData {
-                    audioDeviceCompressedFormat[AVChannelLayoutKey] = aclData
-                }
-            }
-        }
     }
     
     /* ======================================================================================== */

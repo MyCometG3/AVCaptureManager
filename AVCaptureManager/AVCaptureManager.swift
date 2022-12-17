@@ -110,9 +110,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var sampleTimescaleVideo : CMTimeScale = 0
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
 
-    // Called before AVAssetWriterInput(mediaType: AVMediaTypeVideo, outputSettings: videoOutputSettings)
+    // Called when compression settings are regenerated.
+    // Possible when first sampleBuffer is received/after resetCompressionSettings()/start recording
     open var updateVideoSettings : (([String:Any]) -> [String:Any])? = nil
-    // Called before AVAssetWriterInput(mediaType: AVMediaTypeAudio, outputSettings: audioOutputSettings)
     open var updateAudioSettings : (([String:Any]) -> [String:Any])? = nil
     
     /* ======================================================================================== */
@@ -682,15 +682,15 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 }
                 
                 // Specify SameRate, SignedInteger, interleaved format when decompressed
-                audioDeviceDecompressedFormat = [AVFormatIDKey: Int(kAudioFormatLinearPCM),
-                                                 AVSampleRateKey: Float(bestRate),
-                                                 AVNumberOfChannelsKey: Int(bestChannelCount),
-                                                 AVLinearPCMBitDepthKey: Int(bestBitsPerChannel),
-                                                 AVLinearPCMIsBigEndianKey: false,
-                                                 AVLinearPCMIsFloatKey: false,
-                                                 AVLinearPCMIsNonInterleaved: false]
+                audioDeviceDecompressedFormat = [AVFormatIDKey: kAudioFormatLinearPCM,          // UInt32
+                                                 AVSampleRateKey: bestRate,                     // Double
+                                                 AVNumberOfChannelsKey: bestChannelCount,       // UInt32
+                                                 AVLinearPCMBitDepthKey: bestBitsPerChannel,    // UInt32
+                                                 AVLinearPCMIsBigEndianKey: false,              // Bool
+                                                 AVLinearPCMIsFloatKey: false,                  // Bool
+                                                 AVLinearPCMIsNonInterleaved: false]            // Bool
                 if let bestChannelLayoutData = bestChannelLayoutData {
-                    audioDeviceDecompressedFormat[AVChannelLayoutKey] = bestChannelLayoutData
+                    audioDeviceDecompressedFormat[AVChannelLayoutKey] = bestChannelLayoutData   // NSData
                 }
                 
                 return true
