@@ -176,7 +176,7 @@ public enum VideoStyle : String {
         // Video Color Management in AV Foundation and QTKit
         // (https://developer.apple.com/library/prerelease/content/technotes/tn2227/_index.html)
         
-        if encodedHeight <= 525 {
+        if encodedHeight <= 525 && encodedWidth <= 720 {
             // SD (SMPTE-C)
             //   Composite NTSC (SMPTE 170M-1994)
             //   Digital 525 (SMPTE 125M-1995 (4:3 parallel)
@@ -187,7 +187,7 @@ public enum VideoStyle : String {
                 AVVideoTransferFunctionKey : AVVideoTransferFunction_ITU_R_709_2,
                 AVVideoYCbCrMatrixKey : AVVideoYCbCrMatrix_ITU_R_601_4
             ]
-        } else if encodedHeight <= 625 {
+        } else if encodedHeight <= 625 && encodedWidth <= 768 {
             // SD (PAL)
             //   Composite PAL (Rec. ITU-R BT. 470-4)
             //   Digital 625 (Rec. ITU-R BT. 656-3)
