@@ -41,30 +41,31 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     // MARK: - private session configuration
     /* ======================================================================================== */
     
+    /// Attach Captured Video Data Output (either device native or decompressed format)
+    /// - Parameter decompress: true for decompressed format
+    /// - Returns: true if no error
     internal func addVideoDataOutput(decode decompress: Bool) -> Bool {
-        // Define Captured Video Data format (device native or decompressed format)
-        
-        captureVideoDataOutput = AVCaptureVideoDataOutput()
-        if let captureVideoDataOutput = captureVideoDataOutput, let captureSession = captureSession {
-            // Register video setting
-            if decompress == false || videoDeviceDecompressedFormat.count == 0 {
-                // No transcode required (device native format)
-                captureVideoDataOutput.videoSettings = [:]
-            } else {
-                // Transcode required (default decompressed format)
-                captureVideoDataOutput.videoSettings = videoDeviceDecompressedFormat
-            }
-            
-            // Register dispatch queue for video
-            let queue : DispatchQueue = DispatchQueue(label: "my video queue", attributes: [])
-            captureVideoDataOutput.setSampleBufferDelegate(self, queue: queue)
-            
-            // Define Captured Video Data Output
-            let valid = captureSession.canAddOutput(captureVideoDataOutput)
-            if valid {
-                //
-                captureSession.addOutput(captureVideoDataOutput)
-                return true
+        if let captureSession = captureSession {
+            captureVideoDataOutput = AVCaptureVideoDataOutput()
+            if let captureVideoDataOutput = captureVideoDataOutput {
+                // Register video setting
+                if decompress == false || videoDeviceDecompressedFormat.count == 0 {
+                    // No transcode required (device native format)
+                    captureVideoDataOutput.videoSettings = [:]
+                } else {
+                    // Transcode required (default decompressed format)
+                    captureVideoDataOutput.videoSettings = videoDeviceDecompressedFormat
+                }
+                
+                // Register dispatch queue for video
+                let queue : DispatchQueue = DispatchQueue(label: "my video queue", attributes: [])
+                captureVideoDataOutput.setSampleBufferDelegate(self, queue: queue)
+                
+                // Define Captured Video Data Output
+                if captureSession.canAddOutput(captureVideoDataOutput) {
+                    captureSession.addOutput(captureVideoDataOutput)
+                    return true
+                }
             }
         }
         
@@ -72,30 +73,33 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return false
     }
     
+    /// Attach Captured Audio Data Output (either device native or decompressed format)
+    /// - Parameter decompress: true for decompressed format
+    /// - Returns: true if no error
     internal func addAudioDataOutput(decode decompress: Bool) -> Bool {
         // Define Captured Audio Data format (device native or decompressed format)
         
-        captureAudioDataOutput = AVCaptureAudioDataOutput()
-        if let captureAudioDataOutput = captureAudioDataOutput, let captureSession = captureSession {
-            // Register audio setting
-            if decompress == false || audioDeviceDecompressedFormat.count == 0 {
-                // No transcode required (device native format)
-                captureAudioDataOutput.audioSettings = nil
-            } else {
-                // Transcode required (default decompressed format)
-                captureAudioDataOutput.audioSettings = audioDeviceDecompressedFormat
-            }
-            
-            // Register dispatch queue for audio
-            let queue : DispatchQueue = DispatchQueue(label: "my audio queue", attributes: [])
-            captureAudioDataOutput.setSampleBufferDelegate(self, queue: queue)
-            
-            // Define Captured Audio Data Output
-            let valid = captureSession.canAddOutput(captureAudioDataOutput)
-            if valid {
-                //
-                captureSession.addOutput(captureAudioDataOutput)
-                return true
+        if let captureSession = captureSession {
+            captureAudioDataOutput = AVCaptureAudioDataOutput()
+            if let captureAudioDataOutput = captureAudioDataOutput {
+                // Register audio setting
+                if decompress == false || audioDeviceDecompressedFormat.count == 0 {
+                    // No transcode required (device native format)
+                    captureAudioDataOutput.audioSettings = nil
+                } else {
+                    // Transcode required (default decompressed format)
+                    captureAudioDataOutput.audioSettings = audioDeviceDecompressedFormat
+                }
+                
+                // Register dispatch queue for audio
+                let queue : DispatchQueue = DispatchQueue(label: "my audio queue", attributes: [])
+                captureAudioDataOutput.setSampleBufferDelegate(self, queue: queue)
+                
+                // Define Captured Audio Data Output
+                if captureSession.canAddOutput(captureAudioDataOutput) {
+                    captureSession.addOutput(captureAudioDataOutput)
+                    return true
+                }
             }
         }
         
@@ -103,21 +107,26 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return false
     }
     
+    /// Attach Captured Movie File Output using session preset
+    /// - Parameter preset: session preset
+    /// - Returns: true if no error
     internal func addMovieFileOutput(_ preset: AVCaptureSession.Preset) -> Bool {
         if let captureSession = captureSession {
-            if captureSession.canSetSessionPreset(preset) {
-                //
-                captureSession.sessionPreset = preset
-            } else {
-                print("ERROR: Failed to set SessionPreset \(preset).")
-            }
-            
             captureMovieFileOutput = AVCaptureMovieFileOutput()
             if let captureMovieFileOutput = captureMovieFileOutput {
-                //
-                captureSession.addOutput(captureMovieFileOutput)
-                
-                return true
+                // Define Captured Movie File Output
+                if captureSession.canAddOutput(captureMovieFileOutput) {
+                    captureSession.addOutput(captureMovieFileOutput)
+                    
+                    // Apply session preset
+                    if captureSession.canSetSessionPreset(preset) {
+                        captureSession.sessionPreset = preset
+                        return true
+                    } else {
+                        print("ERROR: Failed to set SessionPreset \(preset).")
+                        return false
+                    }
+                }
             }
         }
         
@@ -129,6 +138,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     // MARK: - internal/private recording control
     /* ======================================================================================== */
     
+    /// Start movie file writing using AVAssetWriter (not AVCaptureMovieFileOutput)
+    /// - Parameter fileUrl: movie file URL to write
+    /// - Returns: true if no error
     internal func startRecordingToOutputFileURL(_ fileUrl : URL) -> Bool {
         // unref previous AVAssetWriter and decompressor
         avAssetWriterInputVideo = nil
@@ -155,73 +167,75 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             resampleDuration = sampleDurationVideo
         }
         
-        // Create AVAssetWriter for QuickTime Movie
-        avAssetWriter = try? AVAssetWriter.init(outputURL: fileUrl, fileType: AVFileType.mov)
-        
         /* ============================================ */
         
+        // Create AVAssetWriter for QuickTime Movie
+        avAssetWriter = try? AVAssetWriter.init(outputURL: fileUrl, fileType: .mov)
         if let avAssetWriter = avAssetWriter {
+            //
             if encodeVideo == false {
                 // Create AVAssetWriterInput for Video (Passthru)
-                avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaType.video,
-                                                             outputSettings: nil)
+                avAssetWriterInputVideo = AVAssetWriterInput(mediaType: .video, outputSettings: nil)
             } else {
-                // Create OutputSettings for Video (Compress)
+                // Prepare OutputSettings for Video (Compress)
                 if videoDeviceCompressedFormat.count == 0 {
                     videoDeviceCompressedFormat = prepareOutputSettingsVideo(nil)
                 }
-                let videoOutputSettings : [String:Any] = videoDeviceCompressedFormat
                 
                 // Validate settings for Video
-                if avAssetWriter.canApply(outputSettings: videoOutputSettings, forMediaType: AVMediaType.video) {
+                let settings = videoDeviceCompressedFormat
+                if avAssetWriter.canApply(outputSettings: settings, forMediaType: .video) {
                     // Create AVAssetWriterInput for Video (Compress)
-                    avAssetWriterInputVideo = AVAssetWriterInput(mediaType: AVMediaType.video,
-                                                                 outputSettings: videoOutputSettings)
+                    avAssetWriterInputVideo = AVAssetWriterInput(mediaType: .video,
+                                                                 outputSettings: settings)
                 } else {
                     print("ERROR: videoOutputSettings is not OK")
                     return false
                 }
             }
-            
-            // Apply preferred video media timescale
             if sampleTimescaleVideo > 0, let avAssetWriterInputVideo = avAssetWriterInputVideo {
+                // Apply preferred video media timescale
                 avAssetWriterInputVideo.mediaTimeScale = sampleTimescaleVideo
             }
             
-            /* ============================================ */
-            
+            //
             if encodeAudio == false {
                 // Create AVAssetWriterInput for Audio (Passthru)
-                avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaType.audio,
-                                                             outputSettings: nil)
+                avAssetWriterInputAudio = AVAssetWriterInput(mediaType: .audio, outputSettings: nil)
             } else {
-                // Create OutputSettings for Audio (Compress)
+                // Prepare OutputSettings for Audio (Compress)
                 if audioDeviceCompressedFormat.count == 0 {
                     audioDeviceCompressedFormat = prepareOutputSettingsAudio(nil)
                 }
-                let audioOutputSettings : [String:Any] = audioDeviceCompressedFormat
                 
                 // Validate settings for Audio
-                if avAssetWriter.canApply(outputSettings: audioOutputSettings, forMediaType: AVMediaType.audio) {
+                let settings = audioDeviceCompressedFormat
+                if avAssetWriter.canApply(outputSettings: settings, forMediaType: .audio) {
                     // Create AVAssetWriterInput for Audio (Compress)
-                    avAssetWriterInputAudio = AVAssetWriterInput(mediaType: AVMediaType.audio,
-                                                                 outputSettings: audioOutputSettings)
+                    avAssetWriterInputAudio = AVAssetWriterInput(mediaType: .audio,
+                                                                 outputSettings: settings)
                 } else {
                     print("ERROR: audioOutputSettings is not OK")
                     return false
                 }
             }
             
-            /* ============================================ */
-            
+            //
             if timeCodeFormatType != nil && smpteReadyVideo {
                 // Create AVAssetWriterInput for Timecode (SMPTE)
-                avAssetWriterInputTimeCodeVideo = AVAssetWriterInput(mediaType: AVMediaType.timecode,
-                                                                outputSettings: nil)
+                avAssetWriterInputTimeCodeVideo = AVAssetWriterInput(mediaType: .timecode,
+                                                                     outputSettings: nil)
                 
-                if let inputVideo = avAssetWriterInputVideo, let inputTimeCode = avAssetWriterInputTimeCodeVideo {
-                    inputVideo.addTrackAssociation(withTrackOf: inputTimeCode,
-                                                   type: AVAssetTrack.AssociationType.timecode.rawValue)
+                // Add track association b/w video/timeCode track
+                let inputVideo = avAssetWriterInputVideo
+                let inputTimeCode = avAssetWriterInputTimeCodeVideo
+                if let inputVideo = inputVideo, let inputTimeCode = inputTimeCode {
+                    let trackAssociationType = AVAssetTrack.AssociationType.timecode.rawValue
+                    if inputVideo.canAddTrackAssociation(withTrackOf: inputTimeCode,
+                                                         type: trackAssociationType){
+                        inputVideo.addTrackAssociation(withTrackOf: inputTimeCode,
+                                                       type: trackAssociationType)
+                    }
                 }
             }
             
@@ -262,8 +276,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             /* ============================================ */
             
             if videoReady || audioReady {
-                let valid = avAssetWriter.startWriting()
-                return valid
+                if avAssetWriter.startWriting() {
+                    return true
+                }
+                
+                print("ERROR: Failed to start AVAssetWriter.")
+                return false
             }
         }
         
@@ -271,11 +289,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return false
     }
     
+    /// Stop movie file writing using AVAssetWriter (not AVCaptureMovieFileOutput)
     internal func stopRecordingToOutputFile() {
         if let avAssetWriter = avAssetWriter {
             // Finish writing
-            if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
-                avAssetWriterInputTimeCode.markAsFinished()
+            if let avAssetWriterInputTimeCodeVideo = avAssetWriterInputTimeCodeVideo {
+                avAssetWriterInputTimeCodeVideo.markAsFinished()
             }
             if let avAssetWriterInputVideo = avAssetWriterInputVideo {
                 avAssetWriterInputVideo.markAsFinished()
@@ -285,54 +304,55 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             }
             
             avAssetWriter.endSession(atSourceTime: endTime)
-            avAssetWriter.finishWriting(
-                completionHandler: { [unowned self] () -> Void in
-                    if let decompressor = self.decompressor {
-                        // Clean up
-                        decompressor.flush()
-                        decompressor.invalidate()
-                        
-                        // unref decompressor
-                        self.decompressor = nil
+            avAssetWriter.finishWriting{ [unowned self] in
+                if let decompressor = self.decompressor {
+                    // Clean up
+                    decompressor.flush()
+                    decompressor.invalidate()
+                    
+                    // unref decompressor
+                    self.decompressor = nil
+                }
+                
+                if let avAssetWriter = self.avAssetWriter {
+                    // Check if completed
+                    if avAssetWriter.status != .completed {
+                        // In case of faulty state
+                        let statusStr = self.descriptionForStatus(avAssetWriter.status)
+                        print("ERROR: AVAssetWriter.finishWritingWithCompletionHandler() = \(statusStr)")
+                        print("ERROR: \(avAssetWriter.error.debugDescription)")
                     }
                     
-                    if let avAssetWriter = self.avAssetWriter {
-                        // Check if completed
-                        if avAssetWriter.status != .completed {
-                            // In case of faulty state
-                            let statusStr = self.descriptionForStatus(avAssetWriter.status)
-                            print("ERROR: AVAssetWriter.finishWritingWithCompletionHandler() = \(statusStr)")
-                            print("ERROR: \(avAssetWriter.error.debugDescription)")
-                        }
-                        
-                        // Reset CMTime values
-                        self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
-                        self.startTime = CMTime.zero
-                        self.endTime = CMTime.zero
-                        self.isInitialTSReady = false
-                        
-                        // Reset Resampling values
-                        self.resampleDuration = nil
-                        self.resampleCurrentPTS = nil
-                        self.resampleNextPTS = nil
-                        self.resampleCaptured = nil
-                        
-                        // unref AVAssetWriter
-                        self.avAssetWriterInputTimeCodeVideo = nil
-                        self.avAssetWriterInputVideo = nil
-                        self.avAssetWriterInputAudio = nil
-                        self.avAssetWriter = nil
-                    }
+                    // Reset CMTime values
+                    self._duration = CMTimeGetSeconds(CMTimeSubtract(self.endTime, self.startTime))
+                    self.startTime = CMTime.zero
+                    self.endTime = CMTime.zero
+                    self.isInitialTSReady = false
+                    
+                    // Reset Resampling values
+                    self.resampleDuration = nil
+                    self.resampleCurrentPTS = nil
+                    self.resampleNextPTS = nil
+                    self.resampleCaptured = nil
+                    
+                    // unref AVAssetWriter
+                    self.avAssetWriterInputTimeCodeVideo = nil
+                    self.avAssetWriterInputVideo = nil
+                    self.avAssetWriterInputAudio = nil
+                    self.avAssetWriter = nil
                 }
-            )
+            }
         }
     }
     
+    /// Generate video compression setting
+    /// - Parameter sampleBuffer: source CMSampleBuffer if available
+    /// - Returns: compression setting dictionary
     private func prepareOutputSettingsVideo(_ sampleBuffer: CMSampleBuffer?) -> [String:Any] {
         // Create OutputSettings for Video (Compress)
         var videoOutputSettings : [String:Any] = [:]
         
-        // VidoStyle string and clap:hOffset value
+        // VidoStyle settings with clean aperture offset
         videoOutputSettings = videoStyle.settings(hOffset: clapHOffset, vOffset: clapVOffset)
         
         // video hardware encoder
@@ -356,43 +376,43 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             var compressionProperties :[String:Any] = [:]
             if codec == .h264 {
                 // For H264 encoder; Maximum video bitrate per Profile_Level
-                let maxRate = [
-                    "MP_30": 10.0*1000*1000, "HiP_30": 12.5*1000*1000,
-                    "MP_31": 14.0*1000*1000, "HiP_31": 17.5*1000*1000,
-                    "MP_32": 20.0*1000*1000, "HiP_32": 25.0*1000*1000,
-                    "MP_40": 20.0*1000*1000, "HiP_40": 25.0*1000*1000,
-                    "MP_41": 50.0*1000*1000, "HiP_41": 62.5*1000*1000,
-                    "MP_42": 50.0*1000*1000, "HiP_42": 62.5*1000*1000,
-                    "MP_50":135.0*1000*1000, "HiP_50":168.75*1000*1000,
-                    "MP_51":240.0*1000*1000, "HiP_51":300.0*1000*1000,
+                let maxRate : [String:Int] = [
+                    "MP_30": 10000000, "HiP_30": 12500000,
+                    "MP_31": 14000000, "HiP_31": 17500000,
+                    "MP_32": 20000000, "HiP_32": 25000000,
+                    "MP_40": 20000000, "HiP_40": 25000000,
+                    "MP_41": 50000000, "HiP_41": 62500000,
+                    "MP_42": 50000000, "HiP_42": 62500000,
+                    "MP_50":135000000, "HiP_50":168750000,
+                    "MP_51":240000000, "HiP_51":300000000,
                 ]
                 
                 // TODO: Allow user to choose parameters
-                let bitrate:Int = Int( maxRate["MP_40"]! )
+                let bitrate:Int = maxRate["MP_40"]!
                 let profile:String = AVVideoProfileLevelH264MainAutoLevel
                 compressionProperties = [
-                    AVVideoAverageBitRateKey : bitrate,
-                    AVVideoMaxKeyFrameIntervalKey : 60,
-                    AVVideoMaxKeyFrameIntervalDurationKey : 2.0,
-                    AVVideoAllowFrameReorderingKey : true,
+                    AVVideoAverageBitRateKey : NSNumber(value:bitrate),
+                    AVVideoMaxKeyFrameIntervalKey : NSNumber(value:90),
+                    AVVideoMaxKeyFrameIntervalDurationKey : NSNumber(value:3.0),
+                    AVVideoAllowFrameReorderingKey : NSNumber(value:true),
                     AVVideoProfileLevelKey : profile,
                     AVVideoH264EntropyModeKey : AVVideoH264EntropyModeCABAC,
-                    //AVVideoExpectedSourceFrameRateKey : 30,
-                    //AVVideoAverageNonDroppableFrameRateKey : 10,
+                    //AVVideoExpectedSourceFrameRateKey : NSNumber(value:30),
+                    //AVVideoAverageNonDroppableFrameRateKey : NSNumber(value:10),
                 ]
             }
             
             // Source Frame Rate hint
             var srcFPS:Double = 30.0
-            if let duration = sampleDurationVideo { // Resample enabled
+            if let duration = sampleDurationVideo { // Using sampleDurationVideo instead of resampleDuration here
                 assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
-                srcFPS = Double(duration.timescale)/Double(duration.value)
+                srcFPS = (1.0/duration.seconds)
             } else if let sb = sampleBuffer {
                 let duration = CMSampleBufferGetDuration(sb)
                 assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
-                srcFPS = Double(duration.timescale)/Double(duration.value)
+                srcFPS = (1.0/duration.seconds)
             }
-            compressionProperties[AVVideoExpectedSourceFrameRateKey] = NSNumber(value: srcFPS)
+            compressionProperties[AVVideoExpectedSourceFrameRateKey] = NSNumber(value:srcFPS)
             
             //
             if compressionProperties.count > 0 {
@@ -410,6 +430,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return videoOutputSettings
     }
     
+    /// Generate audio compression setting
+    /// - Parameter sampleBuffer: source CMSampleBuffer if available
+    /// - Returns: compression setting dictionary
     private func prepareOutputSettingsAudio(_ sampleBuffer: CMSampleBuffer?) -> [String:Any] {
         // Prepare OutputSettings for Audio (Compress)
         var audioOutputSettings : [String:Any] = [:]
@@ -498,17 +521,27 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     // MARK: - capture delegate protocol
     /* ======================================================================================== */
     
+    /// AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate
+    /// - Parameters:
+    ///   - output: The capture output object.
+    ///   - sampleBuffer: A CMSampleBuffer object containing information about the dropped frame,
+    ///   such as its format and presentation time. This sample buffer contains none of the original video data.
+    ///   - connection: The connection from which the video was received.
     open func captureOutput(_ output: AVCaptureOutput,
                             didDrop sampleBuffer: CMSampleBuffer,
                             from connection: AVCaptureConnection) {
+        //
         let reason = CMGetAttachment(sampleBuffer,
                                      key: kCMSampleBufferAttachmentKey_DroppedFrameReason,
                                      attachmentModeOut: nil) as? String
         print("NOTICE: Dropped reason =", reason ?? "n/a")
     }
     
-    // AVCaptureVideoDataOutputSampleBufferDelegate Protocol
-    // AVCaptureAudioDataOutputSampleBufferDelegate Protocol
+    /// AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate
+    /// - Parameters:
+    ///   - output: The capture output object.
+    ///   - sampleBuffer: The sample buffer that was output.
+    ///   - connection: The connection.
     open func captureOutput(_ captureOutput: AVCaptureOutput,
                             didOutput sampleBuffer: CMSampleBuffer,
                             from connection: AVCaptureConnection) {
@@ -516,12 +549,13 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         let recording = self.isWriting
         let forAudio = (captureOutput == self.captureAudioDataOutput)
         let forVideo = (captureOutput == self.captureVideoDataOutput)
+        var smpteTime :CVSMPTETime? = nil
         
         // Query SampleBuffer Information
         let bufferReady = CMSampleBufferDataIsReady(sampleBuffer)
         
         // Check discontinuity
-        _ = checkDiscontinuity(sampleBuffer) // Ignore any error
+        _ = detectDiscontinuity(sampleBuffer) // Ignore any error
         
         /* ============================================ */
         
@@ -541,10 +575,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 videoSize = encodedSizeOfSampleBuffer(sampleBuffer)
             }
             
-            // Extract sampleBuffer attachment for SMPTETime
-            let cvSmpteTime = extractCVSMPTETime(from: sampleBuffer)
-            if cvSmpteTime != nil {
-                smpteReadyVideo = true
+            // Verify sampleBuffer attachment for SMPTETime
+            if timeCodeFormatType != nil {
+                smpteTime = extractCVSMPTETime(from: sampleBuffer)
+                if smpteTime != nil {
+                    smpteReadyVideo = true
+                }
             } else {
                 smpteReadyVideo = false
             }
@@ -575,6 +611,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             
             // Check AssetWriter is ready
             if recording && bufferReady {
+                //
                 var needDecompressor = false
                 if encodeVideo {
                     // Transcode is requested.
@@ -582,7 +619,6 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     // Check if sampleBuffer has decompressed image
                     if let _ = CMSampleBufferGetImageBuffer(sampleBuffer) {
                         // Decompressed imageBuffer - no decompressor is needed.
-                        needDecompressor = false
                     } else {
                         // Compressed dataBuffer - decompressor is needed.
                         needDecompressor = true
@@ -609,7 +645,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 }
                 
                 // Timecode track support
-                if timeCodeFormatType != nil && smpteReadyVideo {
+                if smpteTime != nil  {
                     if let sampleBufferTimeCode = createTimeCodeSampleBuffer(from: sampleBuffer) {
                         writeTimecodeSampleBuffer(sampleBufferTimeCode)
                     }
@@ -623,61 +659,69 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
+    /// Write Audio SampleBuffer
+    /// - Parameter sampleBuffer: CMSampleBuffer to write
     private func writeAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputAudio = avAssetWriterInputAudio {
             if avAssetWriterInputAudio.isReadyForMoreMediaData {
-                //
                 updateTimeStamp(sampleBuffer)
-                let result = avAssetWriterInputAudio.append(sampleBuffer)
-                
-                if result == false {
+                if avAssetWriterInputAudio.append(sampleBuffer) {
+                    return
+                } else {
                     let statusStr : String = descriptionForStatus(avAssetWriter!.status)
                     print("ERROR: Could not write audio sample buffer.(\(statusStr))")
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                //print("ERROR: AVAssetWriterInputAudio is not ready to append.")
+                print("ERROR: AVAssetWriterInputAudio is not ready to append.")
             }
         }
     }
     
+    /// Write Video SampleBuffer
+    /// - Parameter sampleBuffer: CMSampleBuffer to write
     private func writeVideoSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputVideo = avAssetWriterInputVideo {
             if avAssetWriterInputVideo.isReadyForMoreMediaData {
-                //
                 updateTimeStamp(sampleBuffer)
-                let result = avAssetWriterInputVideo.append(sampleBuffer)
-                
-                if result == false {
+                if avAssetWriterInputVideo.append(sampleBuffer) {
+                    return
+                } else {
                     let statusStr : String = descriptionForStatus(avAssetWriter!.status)
                     print("ERROR: Could not write video sample buffer.(\(statusStr))")
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                //print("ERROR: AVAssetWriterInputVideo is not ready to append.")
+                print("ERROR: AVAssetWriterInputVideo is not ready to append.")
             }
         }
     }
     
+    /// Write Timecode SampleBuffer
+    /// - Parameter sampleBuffer: CMSampleBuffer to write
     private func writeTimecodeSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
         if let avAssetWriterInputTimeCode = avAssetWriterInputTimeCodeVideo {
             if avAssetWriterInputTimeCode.isReadyForMoreMediaData {
-                //
                 updateTimeStamp(sampleBuffer)
-                let result = avAssetWriterInputTimeCode.append(sampleBuffer)
-                
-                if result == false {
+                if avAssetWriterInputTimeCode.append(sampleBuffer) {
+                    return
+                } else {
                     let statusStr : String = descriptionForStatus(avAssetWriter!.status)
                     print("ERROR: Could not write timecode sample buffer.(\(statusStr))")
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                //print("ERROR: AVAssetWriterInputTimecode is not ready to append.")
+                print("ERROR: AVAssetWriterInputTimecode is not ready to append.")
             }
         }
     }
     
+    /// Write Video SampleBuffer using sampleDurationVideo (Fixed FPS)
+    /// - Parameter srcSampleBuffer: Source CMSsampleBuffer to write
     private func writeVideoSampleBufferResampled(_ srcSampleBuffer: CMSampleBuffer) {
+        // NOTE: sampleDurationVideo is captured as resampleDuration
+        
+        // Check if ready to resample
         let flag = (resampleDuration != nil &&
                     CMTIME_IS_NUMERIC(resampleDuration!) &&
                     resampleDuration!.seconds > 0)
@@ -743,6 +787,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         resampleNextPTS = next
     }
     
+    /// Create a copy of source CMSampleBuffer using new TimingInfo
+    /// - Parameters:
+    ///   - source: source CMSampleBuffer to copy
+    ///   - start: new presentation time stamp
+    ///   - duration: new duration (as Fixed FPS)
+    /// - Returns: resampled sampleBuffer
     private func resample( _ source: CMSampleBuffer, _ start: CMTime, _ duration: CMTime) -> CMSampleBuffer? {
         var newSampleBuffer :CMSampleBuffer? = nil
         var newTimingInfo = CMSampleTimingInfo(duration: duration,
@@ -760,6 +810,8 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     // MARK: - private support func
     /* ======================================================================================== */
     
+    /// Track presentation timestamp and duration of each sampleBuffer
+    /// - Parameter sampleBuffer: CMSampleBuffer to inspect
     private func updateTimeStamp(_ sampleBuffer: CMSampleBuffer) {
         // Update InitialTimeStamp and EndTimeStamp
         let presentation = CMSampleBufferGetPresentationTimeStamp(sampleBuffer)
@@ -786,6 +838,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         objc_sync_exit(self)
     }
     
+    /// Check video decompressor is ready and prepare if required
+    /// - Parameter sampleBuffer: CMSampleBuffer to decode
+    /// - Returns: true if no error
     private func checkdecompressor(_ sampleBuffer: CMSampleBuffer) -> Bool {
         if let decompressor = decompressor, decompressor.isReady() {
             return true
@@ -811,6 +866,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return false
     }
     
+    /// Get dimension of video sampleBuffer in CGSize
+    /// - Parameter sampleBuffer: CMSampleBuffer to inspect
+    /// - Returns: dimension in CGSize
     private func encodedSizeOfSampleBuffer(_ sampleBuffer : CMSampleBuffer) -> CGSize? {
         var cgSize : CGSize? = nil
         if let format : CMFormatDescription = CMSampleBufferGetFormatDescription(sampleBuffer) {
@@ -821,7 +879,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return cgSize
     }
     
-    private func checkDiscontinuity(_ sampleBuffer: CMSampleBuffer) -> Bool {
+    /// Check discontinuity of video/audio sampleBuffer
+    /// - Parameter sampleBuffer: CMSampleBuffer to inspect
+    /// - Returns: true if any gap is detected, false if no issue
+    private func detectDiscontinuity(_ sampleBuffer: CMSampleBuffer) -> Bool {
         var gapDetected = false
         if let fd = CMSampleBufferGetFormatDescription(sampleBuffer) {
             let sequence = CMIOSampleBufferGetSequenceNumber(sampleBuffer)
