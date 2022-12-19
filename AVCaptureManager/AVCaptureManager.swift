@@ -101,8 +101,11 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var usePreset : Bool = false
     /// Preset for capture session
     open var exportPreset : AVCaptureSession.Preset = .high
+    
     /// Debug support - notification
     open var debugObserver : Bool = false
+    /// Debug support - trim movie
+    open var debugTrimMovie : Bool = false
     
     // MARK: -
     /*
