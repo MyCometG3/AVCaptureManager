@@ -54,6 +54,7 @@ class VideoDecompressor : NSObject {
     
     private var session: VTDecompressionSession? = nil
     private var ready: Bool = false
+    private var fieldProcessing: Bool = false
     private var temporalProcessing: Bool = false
     
     /* ======================================================================================== */
@@ -92,7 +93,7 @@ class VideoDecompressor : NSObject {
     ///   - sampleBuffer: source CMSampleBuffer to decode (or decompress)
     ///   - doDeinterlace: deinterlace flag (depends on decoder implementation)
     /// - Returns: true if no error
-    internal func prepare(source sampleBuffer: CMSampleBuffer, deinterlace doDeinterlace: Bool) -> Bool {
+    internal func prepare(source sampleBuffer: CMSampleBuffer, deinterlace tryDeinterlace: Bool) -> Bool {
         // print("decompressor.prepare")
         
         ready = false
@@ -113,10 +114,6 @@ class VideoDecompressor : NSObject {
                 kCVPixelBufferPixelFormatTypeKey: Int(pixelFormatType),
                 kCVPixelBufferWidthKey: Int(dimensions.width),
                 kCVPixelBufferHeightKey: Int(dimensions.height)
-                //, kCVPixelBufferIOSurfacePropertiesKey: [:]
-                , kCVPixelBufferOpenGLCompatibilityKey: true
-                //, kCVPixelBufferMetalCompatibilityKey: true // __MAC_10_11
-                //, kCVPixelBufferOpenGLTextureCacheCompatibilityKey: true // __MAC_10_11
             ]
             
             // Create VTDecompressionSession
@@ -132,49 +129,8 @@ class VideoDecompressor : NSObject {
                 ready = true
                 
                 // When requested:  Try deinterlace when decompressed
-                if doDeinterlace == true, let session = session {
-                    // Query available supported property keys of the decoder
-                    var support: CFDictionary? = nil
-                    let result0: OSStatus = VTSessionCopySupportedPropertyDictionary(session, supportedPropertyDictionaryOut: &support)
-                    
-                    if result0 == noErr, let support = support {
-                        // FieldMode_DeinterlaceFields
-                        if CFDictionaryContainsKey(support, Unmanaged.passUnretained(kVTDecompressionPropertyKey_FieldMode).toOpaque()) {
-                            // Ready to deinterlace fields
-                            let result1 = VTSessionSetProperty(session,
-                                                               key: kVTDecompressionPropertyKey_FieldMode,
-                                                               value: kVTDecompressionProperty_FieldMode_DeinterlaceFields)
-                            if result1 == noErr {
-                                // Decoder supports deinterlace fields feature.
-                                // Deinterlaced decodring is enabled now.
-                            } else {
-                                // Ignore error
-                                print("ERROR: Failed to enable FieldMode_DeinterlaceFields. (\(result1))")
-                            }
-                        } else {
-                            // print("NOTE: The decoder do not support FieldMode_DeinterlaceFields.")
-                        }
-                        
-                        // DeinterlaceMode_Temporal
-                        if CFDictionaryContainsKey(support, Unmanaged.passUnretained(kVTDecompressionPropertyKey_DeinterlaceMode).toOpaque()) {
-                            // Ready to deinterlaceMode
-                            let result2 = VTSessionSetProperty(session,
-                                                               key: kVTDecompressionPropertyKey_DeinterlaceMode,
-                                                               value: kVTDecompressionProperty_DeinterlaceMode_Temporal)
-                            if result2 == noErr {
-                                // Decoder supports temporal processing for deinterlaceMode.
-                                // Try temporal processing on decoding.
-                                temporalProcessing = doDeinterlace
-                            } else {
-                                // Ignore error
-                                print("ERROR: Failed to enable DeinterlaceMode_Temporal. (\(result2))")
-                            }
-                        } else {
-                            // print("NOTE: The decoder do not support DeinterlaceMode_Temporal.")
-                        }
-                    } else {
-                        print("ERROR: Failed to query VTSessionCopySupportedPropertyDictionary().")
-                    }
+                if tryDeinterlace == true, let session = session {
+                    verifyDeinterlaceSupport(session)
                 }
             } else {
                 print("ERROR: Failed to VTDecompressionSessionCreate(). error = \(valid)")
@@ -261,6 +217,60 @@ class VideoDecompressor : NSObject {
         } else {
             print("ERROR: Failed to decode sampleBuffer - Not ready.")
         }
+    }
+    
+    private func verifyDeinterlaceSupport(_ session: VTDecompressionSession) {
+        // Query available supported property keys of the decoder
+        var support: CFDictionary? = nil
+        let result0: OSStatus = VTSessionCopySupportedPropertyDictionary(session, supportedPropertyDictionaryOut: &support)
+        
+        if result0 == noErr, let support = support {
+            // FieldMode_DeinterlaceFields
+            fieldProcessing = false
+            if CFDictionaryContainsKey(support, ptr(kVTDecompressionPropertyKey_FieldMode)) {
+                // Ready to deinterlace fields
+                let result1 = VTSessionSetProperty(session,
+                                                   key: kVTDecompressionPropertyKey_FieldMode,
+                                                   value: kVTDecompressionProperty_FieldMode_DeinterlaceFields)
+                if result1 == noErr {
+                    // Decoder supports deinterlace fields feature.
+                    // Deinterlaced decodring is enabled now.
+                    fieldProcessing = true
+                } else {
+                    // Ignore error
+                    print("ERROR: Failed to enable FieldMode_DeinterlaceFields. (\(result1))")
+                }
+            } else {
+                // print("NOTE: The decoder do not support FieldMode_DeinterlaceFields.")
+            }
+            
+            // DeinterlaceMode_Temporal
+            temporalProcessing = false
+            if CFDictionaryContainsKey(support, ptr(kVTDecompressionPropertyKey_DeinterlaceMode)) {
+                // Ready to deinterlaceMode
+                let result2 = VTSessionSetProperty(session,
+                                                   key: kVTDecompressionPropertyKey_DeinterlaceMode,
+                                                   value: kVTDecompressionProperty_DeinterlaceMode_Temporal)
+                if result2 == noErr {
+                    // Decoder supports temporal processing for deinterlaceMode.
+                    // Try temporal processing on decoding.
+                    temporalProcessing = true
+                    return
+                } else {
+                    // Ignore error
+                    print("ERROR: Failed to enable DeinterlaceMode_Temporal. (\(result2))")
+                }
+            } else {
+                // print("NOTE: The decoder do not support DeinterlaceMode_Temporal.")
+            }
+        } else {
+            print("ERROR: Failed to query VTSessionCopySupportedPropertyDictionary().")
+        }
+    }
+    
+    private func ptr(_ cfType :CFTypeRef) -> UnsafeRawPointer {
+        let ptr = Unmanaged.passUnretained(cfType).toOpaque()
+        return UnsafeRawPointer(ptr)
     }
     
     /* ======================================================================================== */
