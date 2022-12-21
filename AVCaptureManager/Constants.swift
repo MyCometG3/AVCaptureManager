@@ -63,6 +63,7 @@ public enum VideoStyle : String {
     case SD_640_480_Full    = "SD 640:480 Full"     // square pixel
     case SD_640_486_Full    = "SD 640:486 Full"     // square pixel
     case SD_768_576_Full    = "SD 768:576 Full"     // square pixel
+    case HD_960_540_Full    = "HD 960:540 Full"     // square pixel
     case HD_1280_720_Full   = "HD 1280:720 Full"    // square pixel
     case HD_1920_1080_Full  = "HD 1920:1080 Full"   // square pixel
     case SD_720_480_4_3     = "SD 720:480 4:3"      // clap - non square pixel
@@ -110,6 +111,10 @@ public enum VideoStyle : String {
         case .SD_768_576_Full:      // SD 768:576 square pixel fullsize
             encodedWidth = 768;     encodedHeight = 576
             visibleWidth = 768;     visibleHeight = 576
+            aspectHorizontal = 1;   aspectVertical = 1
+        case .HD_960_540_Full:    // HD 960:540 square pixel fullsize
+            encodedWidth = 960;     encodedHeight = 540
+            visibleWidth = 960;     visibleHeight = 540
             aspectHorizontal = 1;   aspectVertical = 1
         case .HD_1920_1080_Full:    // HD 1920:1080 square pixel fullsize
             encodedWidth = 1920;    encodedHeight = 1080
