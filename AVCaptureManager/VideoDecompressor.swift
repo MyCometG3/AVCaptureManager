@@ -45,6 +45,9 @@ class VideoDecompressor : NSObject {
     // For callback
     internal var writeDecompressed: ((CMSampleBuffer) -> Void)? = nil
     
+    // For decompressed pixelformat
+    internal var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8
+    
     /* ======================================================================================== */
     // MARK: - private variables
     /* ======================================================================================== */
@@ -57,11 +60,14 @@ class VideoDecompressor : NSObject {
     // MARK: - public init/deinit
     /* ======================================================================================== */
     
-    init(source sampleBuffer: CMSampleBuffer, deinterlace doDeinterlace: Bool) {
+    init(source sampleBuffer: CMSampleBuffer, deinterlace doDeinterlace: Bool, pixelFormat format:CMPixelFormatType?) {
         super.init()
         
         // print("decompressor.init")
         
+        if let format = format {
+            pixelFormatType = format
+        }
         _ = prepare(source: sampleBuffer, deinterlace: doDeinterlace)
     }
     
@@ -104,7 +110,7 @@ class VideoDecompressor : NSObject {
             // Prepare default attributes
             let dimensions: CMVideoDimensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
             let defaultAttr: [NSString: Any] = [
-                kCVPixelBufferPixelFormatTypeKey: Int(kCVPixelFormatType_422YpCbCr8),
+                kCVPixelBufferPixelFormatTypeKey: Int(pixelFormatType),
                 kCVPixelBufferWidthKey: Int(dimensions.width),
                 kCVPixelBufferHeightKey: Int(dimensions.height)
                 //, kCVPixelBufferIOSurfacePropertiesKey: [:]

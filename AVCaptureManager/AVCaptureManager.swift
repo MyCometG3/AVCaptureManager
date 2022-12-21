@@ -90,10 +90,10 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
-    // MARK: -
+    // MARK: - session parameters
     /*
-     * Set before openSession()
-     * NOTE: Use closeSession()/openSession() to reflect changes of following
+     * Followings are session settings.
+     * Use closeSession()/openSession() to reflect any changes.
      */
     /// Special flag for muxed stream (Video/Audio muxed). e.g. DV devices
     open var useMuxed : Bool = false
@@ -106,12 +106,21 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var debugObserver : Bool = false
     /// Debug support - trim movie
     open var debugTrimMovie : Bool = false
+    /// Debug support - decode video; false allows device native format. Default is false.
+    open var debugDecodeVideo : Bool = false
+    /// Debug support - decode audio; false allows device native format. Default is true.
+    open var debugDecodeAudio : Bool = true
     
-    // MARK: -
+    /// Decompressed pixel format; either 8bit or 10bit, 422 or 444 is recommended. Default is kCMPixelFormat_422YpCbCr8.
+    open var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8
+    
+    /// Video dimension received from input device
+    internal (set) public var videoSize : CGSize? = nil
+    
+    // MARK: - custom compression parameters
     /*
-     * Set before startRecording(to:)
-     * Set usePreset=false
-     * NOTE: Use resetCompressionSettings() to reflect changes of following
+     * Following are custom settings, effective when usePreset=false.
+     * Use resetCompressionSettings() to reflect any changes.
      */
     /// Enable VideoTranscode or not
     open var encodeVideo : Bool = true
@@ -120,25 +129,42 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     /// Request deinterlace of input video (depends on decoder feature)
     open var encodeDeinterlace : Bool = true
     /// Choose ProRes or H.264 for VideoTranscode
-    open var encodeProRes422 : Bool = true
-    /// VideoStyle for encodeVideo==true
+    open var encodeProRes : Bool = true
+    
+    /// VideoStyle for encodeVideo==true; use resetVideoStyle() to set.
     private (set) public var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
-    /// Clean aperture offset - Horizontal
+    /// Clean aperture offset - Horizontal; use resetVideoStyle() to set.
     private (set) public var clapHOffset : Int = 0
-    /// Clean aperture offset - Vertical
+    /// Clean aperture offset - Vertical; use resetVideoStyle() to set.
     private (set) public var clapVOffset : Int = 0
-    /// video dimension from input device
-    internal (set) public var videoSize : CGSize? = nil
+    
     /// Video resampling support
     open var sampleDurationVideo : CMTime? = nil
     /// Video track timeScale like 30000, 50000, 60000 (per sec)
     open var sampleTimescaleVideo : CMTimeScale = 0
     /// TimeCode track support
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
+    
     /// Callback support to verify/modify for video compression setting
     open var updateVideoSettings : (([String:Any]) -> [String:Any])? = nil
     /// Callback support to verify/modify for audio compression setting
     open var updateAudioSettings : (([String:Any]) -> [String:Any])? = nil
+    
+    /// ProRes VideoEncoder. Default is AVVideoCodecType.proRes422.
+    open var proresEncoderType : AVVideoCodecType = .proRes422
+    /// VideoEncoder. Default is AVVideoCodecType.h264. Use updateVideoSettings() to modify detailed parameters.
+    open var videoEncoderType : AVVideoCodecType = .h264
+    /// VideoEncoder profile. Default is AVVideoProfileLevelH264MainAutoLevel. NOTE: AVVideoCodecType.h264 only.
+    open var videoEncoderProfile : String = AVVideoProfileLevelH264MainAutoLevel
+    /// VideoEncoder bitRate. Default is H264ProfileLevel.MP_40.maxRate. NOTE: AVVideoCodecType.h264 only.
+    open var videoEncoderBitRate : Int = H264ProfileLevel.MP_40.maxRate
+    
+    /// AudioEncoder. Default is kAudioFormatMPEG4AAC. Use updateAudioSettings() to modify detailed parameters.
+    open var audioEncodeType : AudioFormatID = kAudioFormatMPEG4AAC
+    /// AudioEncoder bitRate. Default is 256Kbps.
+    open var audioEncoderBitRate : Int = 256*1000
+    /// AudioEncoder bitRate Strategy. Default is AVAudioBitRateStrategy_Constant.
+    open var audioEncoderStrategy : String = AVAudioBitRateStrategy_Constant
     
     /* ======================================================================================== */
     // MARK: - internal variables - session
@@ -539,7 +565,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             } else {
                 // Using AVAssetWriter
                 // NOTE: For video, we use device native format for extra control
-                outputReady = addVideoDataOutput(decode: false) && addAudioDataOutput(decode: true)
+                outputReady = (addVideoDataOutput(decode: debugDecodeVideo) &&
+                               addAudioDataOutput(decode: debugDecodeAudio))
             }
             
             /* ============================================ */
@@ -630,7 +657,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                     captureDeviceVideo.unlockForConfiguration()
                     
                     // Specify width/height, pixelformat
-                    let pixelFormat = kCMPixelFormat_422YpCbCr8 // TODO:
+                    let pixelFormat = pixelFormatType
                     let formatDescription = bestFormat.formatDescription
                     let dimensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
                     videoDeviceDecompressedFormat = [
@@ -649,6 +676,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                             }
                         }
                     }
+                    videoDeviceDecompressedFormat = convertExtensionsAsVideoSettings(videoDeviceDecompressedFormat)
                     
                     videoSize = CGSize(width: Double(dimensions.width),
                                        height: Double(dimensions.height))
@@ -947,6 +975,76 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         } else {
             return AVCaptureDevice.default(for: type)
         }
+    }
+    
+    /// Convert some CMFormatDescriptionExtension(s) into AVVideoSettings (Ref: AVVideoSettings.h)
+    ///
+    /// CMVideoFormatDescriptionGetExtensionKeysCommonWithImageBuffers() returns kCMFormatDescriptionExtension_* keys;
+    /// They are alias of kCVImageBuffer*. We need to convert "pasp/clap/colr" using AVVideo*Keys.
+    /// - Parameter srcSettings: settings with incompatible Extensions
+    /// - Returns: resulted settings
+    private func convertExtensionsAsVideoSettings(_ srcSettings:[String:Any] ) -> [String:Any] {
+        var settings = srcSettings
+        
+        // pasp: Convert as AVVideoPixelAspectRatioKey (Ref: AVVideoSettings.h)
+        let paspExt = settings[kCMFormatDescriptionExtension_PixelAspectRatio as String]
+        if let cfType = paspExt as CFTypeRef?, let paspExt = cfType as? NSDictionary {
+            let paspH = paspExt[kCMFormatDescriptionKey_PixelAspectRatioHorizontalSpacing]
+            let paspV = paspExt[kCMFormatDescriptionKey_PixelAspectRatioVerticalSpacing]
+            if let paspH = paspH, let paspV = paspV {
+                //
+                let pasp : NSDictionary = [
+                    AVVideoPixelAspectRatioHorizontalSpacingKey : paspH,
+                    AVVideoPixelAspectRatioVerticalSpacingKey : paspV,
+                ]
+                settings[AVVideoPixelAspectRatioKey] = pasp
+            }
+            
+            settings.removeValue(forKey: kCMFormatDescriptionExtension_PixelAspectRatio as String)
+        }
+
+        // clap: Convert as AVVideoCleanApertureKey (Ref: AVVideoSettings.h)
+        // NOTE: clap without offset is ignored
+        let clapExt = settings[kCMFormatDescriptionExtension_CleanAperture as String]
+        if let cfType = clapExt as CFTypeRef?, let clapExt = cfType as? NSDictionary {
+            let clapWidth = clapExt[kCMFormatDescriptionKey_CleanApertureWidth]
+            let clapHeight = clapExt[kCMFormatDescriptionKey_CleanApertureHeight]
+            let clapOffsetH = clapExt[kCMFormatDescriptionKey_CleanApertureHorizontalOffset]
+            let clapOffsetV = clapExt[kCMFormatDescriptionKey_CleanApertureVerticalOffset]
+            if let clapWidth = clapWidth, let clapHeight = clapHeight,
+               let clapOffsetH = clapOffsetH, let clapOffsetV = clapOffsetV {
+                //
+                let clap : NSDictionary = [
+                    AVVideoCleanApertureWidthKey : clapWidth ,
+                    AVVideoCleanApertureHeightKey : clapHeight ,
+                    AVVideoCleanApertureHorizontalOffsetKey : clapOffsetH ,
+                    AVVideoCleanApertureVerticalOffsetKey : clapOffsetV ,
+                ]
+                settings[AVVideoCleanApertureKey] = clap
+            }
+            
+            settings.removeValue(forKey: kCMFormatDescriptionExtension_CleanAperture as String)
+        }
+
+        // colr: Encapsulate as AVVideoColorPropertiesKey (Ref: AVVideoSettings.h)
+        let colrMatrix = settings[kCMFormatDescriptionExtension_YCbCrMatrix as String]
+        let colrTransfer = settings[kCMFormatDescriptionExtension_TransferFunction as String]
+        let colrPrimaries = settings[kCMFormatDescriptionExtension_ColorPrimaries as String]
+        if let colrMatrix = colrMatrix, let colrTransfer = colrTransfer, let colrPrimaries = colrPrimaries {
+            //
+            let colr : NSDictionary = [
+                AVVideoYCbCrMatrixKey:colrMatrix,
+                AVVideoTransferFunctionKey:colrTransfer,
+                AVVideoColorPrimariesKey:colrPrimaries,
+            ]
+            settings[AVVideoColorPropertiesKey] = colr
+            
+            settings.removeValue(forKey: kCMFormatDescriptionExtension_YCbCrMatrix as String)
+            settings.removeValue(forKey: kCMFormatDescriptionExtension_TransferFunction as String)
+            settings.removeValue(forKey: kCMFormatDescriptionExtension_ColorPrimaries as String)
+        }
+        
+        return settings
     }
     
 }

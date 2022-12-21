@@ -32,6 +32,33 @@
 import Foundation
 import AVFoundation
 
+/// Define h264 profile and level
+public enum H264ProfileLevel {
+    // For H264 encoder
+    case MP_30 ; case HiP_30 ;
+    case MP_31 ; case HiP_31 ;
+    case MP_32 ; case HiP_32 ;
+    case MP_40 ; case HiP_40 ;
+    case MP_41 ; case HiP_41 ;
+    case MP_42 ; case HiP_42 ;
+    case MP_50 ; case HiP_50 ;
+    case MP_51 ; case HiP_51 ;
+    
+    // Maximum video bitrate per Profile_Level
+    var maxRate: Int {
+        switch self {
+        case .MP_30: return  10000000 ; case .HiP_30: return  12500000;
+        case .MP_31: return  14000000 ; case .HiP_31: return  17500000;
+        case .MP_32: return  20000000 ; case .HiP_32: return  25000000;
+        case .MP_40: return  20000000 ; case .HiP_40: return  25000000;
+        case .MP_41: return  50000000 ; case .HiP_41: return  62500000;
+        case .MP_42: return  50000000 ; case .HiP_42: return  62500000;
+        case .MP_50: return 135000000 ; case .HiP_50: return 168750000;
+        case .MP_51: return 240000000 ; case .HiP_51: return 300000000;
+        }
+    }
+}
+
 public enum VideoStyle : String {
     case SD_640_480_Full    = "SD 640:480 Full"     // square pixel
     case SD_640_486_Full    = "SD 640:486 Full"     // square pixel

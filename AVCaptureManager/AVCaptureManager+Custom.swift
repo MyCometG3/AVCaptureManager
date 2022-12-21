@@ -336,33 +336,19 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         videoOutputSettings[AVVideoEncoderSpecificationKey] = encoderSpecification
         
         // video output codec
-        if encodeProRes422 {
-            // TODO: Allow user to choose ProRes compressor
-            let codec :AVVideoCodecType = .proRes422
+        if encodeProRes {
+            let codec :AVVideoCodecType = proresEncoderType
             videoOutputSettings[AVVideoCodecKey] = codec
             
         } else {
-            // TODO: Allow user to choose General compressor
-            let codec :AVVideoCodecType = .h264
+            let codec :AVVideoCodecType = videoEncoderType
             videoOutputSettings[AVVideoCodecKey] = codec
             
             var compressionProperties :[String:Any] = [:]
             if codec == .h264 {
                 // For H264 encoder; Maximum video bitrate per Profile_Level
-                let maxRate : [String:Int] = [
-                    "MP_30": 10000000, "HiP_30": 12500000,
-                    "MP_31": 14000000, "HiP_31": 17500000,
-                    "MP_32": 20000000, "HiP_32": 25000000,
-                    "MP_40": 20000000, "HiP_40": 25000000,
-                    "MP_41": 50000000, "HiP_41": 62500000,
-                    "MP_42": 50000000, "HiP_42": 62500000,
-                    "MP_50":135000000, "HiP_50":168750000,
-                    "MP_51":240000000, "HiP_51":300000000,
-                ]
-                
-                // TODO: Allow user to choose parameters
-                let bitrate:Int = maxRate["MP_40"]!
-                let profile:String = AVVideoProfileLevelH264MainAutoLevel
+                let bitrate:Int = videoEncoderBitRate
+                let profile:String = videoEncoderProfile
                 compressionProperties = [
                     AVVideoAverageBitRateKey : NSNumber(value:bitrate),
                     AVVideoMaxKeyFrameIntervalKey : NSNumber(value:90),
@@ -410,10 +396,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         // Prepare OutputSettings for Audio (Compress)
         var audioOutputSettings : [String:Any] = [:]
         
-        // TODO: allow user to customize
-        let audioFormat = kAudioFormatMPEG4AAC
-        let bitRate = UInt32(256*1024)
-        let strategy = AVAudioBitRateStrategy_Constant
+        //
+        let audioFormat = audioEncodeType
+        let bitRate = UInt32(audioEncoderBitRate)
+        let strategy = audioEncoderStrategy
         
         // Extract AudioFormatDescription and create compressed format settings
         if  let sampleBuffer = sampleBuffer,
@@ -820,7 +806,9 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
         
         // Prepare decompressor (format transcode : device native => decompressed)
-        decompressor = VideoDecompressor.init(source: sampleBuffer, deinterlace: encodeDeinterlace)
+        decompressor = VideoDecompressor.init(source: sampleBuffer,
+                                              deinterlace: encodeDeinterlace,
+                                              pixelFormat: pixelFormatType)
         
         if let decompressor = decompressor {
             if decompressor.isReady() {
