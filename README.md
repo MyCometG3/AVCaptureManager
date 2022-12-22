@@ -2,12 +2,14 @@
 
 Simple but powerful wrapper for AVCapture.framework, etc.
 
-- __Requirement__: MacOS X 10.13 or later.
+- __Requirement__: MacOS X 10.14.6 or later.
 - __Capture Device__: Any AV devices compatible with AVCapture.framework,
 including A/V mixed connection like DV.
 - __Restriction__: Video-only or Audio-only recording are not supported.
-- __Dependency__: AVFoundation/AVCapture/VideoToolbox/CoreVideo/CoreMedia
+- __Dependency__: AVFoundation/VideoToolbox/CoreMediaIO
 - __Architecture__: Universal binary (x86_64 + arm64)
+
+#### NOTE: No binary is available for version 2.0.0a yet.
 
 #### Basic Usage
 
@@ -37,20 +39,24 @@ including A/V mixed connection like DV.
     // Wait Source encoded pixel size is ready to proceed
     open var videoSize : CGSize? = nil
 
-    TODO: Current version does not fill videoSize if usePreset = true.
-
 ###### 3. Set parameters for recording then start recording
 
     // Set before startRecording(to:) - when usePreset==false
     open var encodeVideo : Bool = true
     open var encodeAudio : Bool = true
     open var encodeDeinterlace : Bool = true
-    open var encodeProRes422 : Bool = true
-    open var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
-    open var clapHOffset : Int = 0
-    open var clapVOffset : Int = 0
+    open var encodeProRes : Bool = true
+    private (set) public var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
+    private (set) public var clapHOffset : Int = 0
+    private (set) public var clapVOffset : Int = 0
+    open var sampleDurationVideo : CMTime? = nil
     open var sampleTimescaleVideo : CMTimeScale = 0
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
+
+    // Apply new recording parameters using one of followings:
+    open func resetVideoStyle(_ newStyle:VideoStyle) {...}
+    open func resetVideoStyle(_ newStyle:VideoStyle, hOffset newHOffset:Int, vOffset newVOffset:Int) {...}
+    open func resetCompressionSettings() {
 
     // Specify URL to record
     open func startRecording(to url: URL) {...}
@@ -94,11 +100,11 @@ You have to restart session always in the following scenario:
 - To change devices for inputs
 
 #### Development environment
-- MacOS X 10.15.7 Catalina
-- Xcode 12.2
-- Swift 5.3.1
+- macOS 12.6.2 Monterey
+- Xcode 14.2
+- Swift 5.7.2
 
 #### License
-- 3-clause BSD license
+- MIT license
 
-Copyright © 2016-2020年 MyCometG3. All rights reserved.
+Copyright © 2016-2022年 MyCometG3. All rights reserved.
