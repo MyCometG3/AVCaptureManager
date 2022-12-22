@@ -10,9 +10,8 @@
 
 import Foundation
 import AVFoundation
-import VideoToolbox
 import CoreMediaIO.CMIOSampleBuffer
-import CoreAudioTypes
+import VideoToolbox
 
 extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
     

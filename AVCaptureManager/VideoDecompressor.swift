@@ -10,10 +10,6 @@
 
 import Foundation
 import AVFoundation
-
-import CoreFoundation
-import CoreVideo
-import CoreMedia
 import VideoToolbox
 
 class VideoDecompressor : NSObject {

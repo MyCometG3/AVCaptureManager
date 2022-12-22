@@ -10,7 +10,6 @@
 
 import Foundation
 import AVFoundation
-import VideoToolbox
 
 open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     

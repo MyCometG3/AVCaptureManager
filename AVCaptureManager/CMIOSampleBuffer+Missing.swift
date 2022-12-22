@@ -9,6 +9,8 @@
 /* This software is released under the MIT License, see LICENSE.txt. */
 
 import Foundation
+import AVFoundation
+import CoreMediaIO.CMIOSampleBuffer
 
 // Missing CoreMediaIO.CMIOSampleBuffer definitions (CMIOSampleBuffer.h)
 internal let kCMIOInvalidSequenceNumber:UInt64 = ~UInt64(0)
