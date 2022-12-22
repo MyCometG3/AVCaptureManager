@@ -17,6 +17,7 @@
 		16308AE82946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE72946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift */; };
 		16308AEA2948848300A5DB05 /* AVCaptureManager+Timecode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16308AE92948848300A5DB05 /* AVCaptureManager+Timecode.swift */; };
 		16633B98294E8D1C008479FC /* AVCaptureManager+Trim.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16633B97294E8D1C008479FC /* AVCaptureManager+Trim.swift */; };
+		16633B9C29544A96008479FC /* LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 16633B9B29544A96008479FC /* LICENSE.txt */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +33,7 @@
 		16308AE72946A10B00A5DB05 /* CMIOSampleBuffer+Missing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "CMIOSampleBuffer+Missing.swift"; sourceTree = "<group>"; };
 		16308AE92948848300A5DB05 /* AVCaptureManager+Timecode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureManager+Timecode.swift"; sourceTree = "<group>"; };
 		16633B97294E8D1C008479FC /* AVCaptureManager+Trim.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureManager+Trim.swift"; sourceTree = "<group>"; };
+		16633B9B29544A96008479FC /* LICENSE.txt */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = LICENSE.txt; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -48,6 +50,7 @@
 		1618D2F31D56F70C00000D1D = {
 			isa = PBXGroup;
 			children = (
+				16633B9B29544A96008479FC /* LICENSE.txt */,
 				1618D2FF1D56F70C00000D1D /* AVCaptureManager */,
 				1618D2FE1D56F70C00000D1D /* Products */,
 			);
@@ -151,6 +154,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				16633B9C29544A96008479FC /* LICENSE.txt in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -298,7 +302,7 @@
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2020.11.22;
+				CURRENT_PROJECT_VERSION = 2022.12.22;
 				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = BV5C4YNA4Z;
@@ -310,7 +314,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 2.0.0a;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mycometg3.AVCaptureManager;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -326,7 +330,7 @@
 				CODE_SIGN_IDENTITY = "";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
-				CURRENT_PROJECT_VERSION = 2020.11.22;
+				CURRENT_PROJECT_VERSION = 2022.12.22;
 				DEAD_CODE_STRIPPING = YES;
 				DEFINES_MODULE = YES;
 				DEVELOPMENT_TEAM = BV5C4YNA4Z;
@@ -338,7 +342,7 @@
 				INSTALL_PATH = "$(LOCAL_LIBRARY_DIR)/Frameworks";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks @loader_path/Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = "$(RECOMMENDED_MACOSX_DEPLOYMENT_TARGET)";
-				MARKETING_VERSION = 1.0.8;
+				MARKETING_VERSION = 2.0.0a;
 				PRODUCT_BUNDLE_IDENTIFIER = com.mycometg3.AVCaptureManager;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
