@@ -265,6 +265,8 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     /// Stop movie file writing using AVAssetWriter (not AVCaptureMovieFileOutput)
     internal func stopRecordingToOutputFile() {
         if let avAssetWriter = avAssetWriter {
+            let outputURL = avAssetWriter.outputURL
+            
             // Finish writing
             if let avAssetWriterInputTimeCodeVideo = avAssetWriterInputTimeCodeVideo {
                 avAssetWriterInputTimeCodeVideo.markAsFinished()
@@ -313,6 +315,12 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     self.avAssetWriterInputVideo = nil
                     self.avAssetWriterInputAudio = nil
                     self.avAssetWriter = nil
+                }
+                
+                DispatchQueue.main.async {
+                    if self.trimMovie(outputURL) == false {
+                        print("ERROR: Failed to trim the output on:", outputURL)
+                    }
                 }
             }
         }
@@ -632,7 +640,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                print("ERROR: AVAssetWriterInputAudio is not ready to append.")
+                //print("ERROR: AVAssetWriterInputAudio is not ready to append.")
             }
         }
     }
@@ -651,7 +659,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                print("ERROR: AVAssetWriterInputVideo is not ready to append.")
+                //print("ERROR: AVAssetWriterInputVideo is not ready to append.")
             }
         }
     }
@@ -670,7 +678,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     //print("ERROR: \(avAssetWriter!.error)")
                 }
             } else {
-                print("ERROR: AVAssetWriterInputTimecode is not ready to append.")
+                //print("ERROR: AVAssetWriterInputTimecode is not ready to append.")
             }
         }
     }

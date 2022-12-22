@@ -39,6 +39,7 @@ extension AVCaptureManager {
     /// - Parameter url: Movie file URL to modify
     /// - Returns: true if no error.
     public func trimMovie(_ url: URL) -> Bool {
+        if debugTrimMovie { print("# trimMovie: started on:", url.path) }
         guard chekMovieUTI(url) else {
             print("ERROR: Invalid UTI detected.")
             return false
@@ -85,6 +86,7 @@ extension AVCaptureManager {
                     try dstMovie.writeHeader(to: url,
                                              fileType: .mov,
                                              options: replaceHeader)
+                    if debugTrimMovie { print("# trimMovie: completed.") }
                     return true
                 } catch {
                     print("ERROR: Failed to dstMovie.writeHeader(); \(error)")
@@ -94,6 +96,7 @@ extension AVCaptureManager {
         }
         
         // No modification is required
+        if debugTrimMovie { print("# trimMovie: skipped.") }
         return true
     }
     
