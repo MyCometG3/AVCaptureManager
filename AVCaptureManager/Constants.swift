@@ -24,7 +24,7 @@ public enum H264ProfileLevel {
     case MP_51 ; case HiP_51 ;
     
     // Maximum video bitrate per Profile_Level
-    var maxRate: Int {
+    public var maxRate: Int {
         switch self {
         case .MP_30: return  10000000 ; case .HiP_30: return  12500000;
         case .MP_31: return  14000000 ; case .HiP_31: return  17500000;
