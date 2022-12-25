@@ -170,11 +170,13 @@ public enum VideoStyle : String {
         videoOutputSettings[AVVideoHeightKey] = encodedHeight
         
         // clap
+        let clapOffsetH:Int = clampOffset(horizontalOffset, visibleWidth, encodedWidth)
+        let clapOffsetV:Int = clampOffset(verticalOffset, visibleHeight, encodedHeight)
         videoOutputSettings[AVVideoCleanApertureKey] = [
             AVVideoCleanApertureWidthKey : visibleWidth ,
             AVVideoCleanApertureHeightKey : visibleHeight ,
-            AVVideoCleanApertureHorizontalOffsetKey : horizontalOffset ,
-            AVVideoCleanApertureVerticalOffsetKey : verticalOffset
+            AVVideoCleanApertureHorizontalOffsetKey : clapOffsetH ,
+            AVVideoCleanApertureVerticalOffsetKey : clapOffsetV
         ]
         
         // pasp
@@ -244,5 +246,19 @@ public enum VideoStyle : String {
         
         return videoOutputSettings
     }
-
+    
+    /// Clamp out-of-range clap offset value
+    /// - Parameters:
+    ///   - offset: offset value to clamp
+    ///   - visible: visible size
+    ///   - encoded: encoded size
+    /// - Returns: clamped offset value
+    private func clampOffset(_ offset:Int, _ visible:Double, _ encoded:Double) -> Int {
+        guard (visible + 2) <= encoded else { return 0 }
+        
+        let maxOffset:Int = Int(floor((encoded - visible)/2))
+        let minOffset:Int = -maxOffset
+        let clapOffset:Int = min(max(minOffset, offset), maxOffset)
+        return clapOffset
+    }
 }
