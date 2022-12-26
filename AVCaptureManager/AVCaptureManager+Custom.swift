@@ -331,33 +331,51 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             videoOutputSettings[AVVideoCodecKey] = codec
             
             var compressionProperties :[String:Any] = [:]
-            if codec == .h264 {
-                // For H264 encoder; Maximum video bitrate per Profile_Level
-                let bitrate:Int = videoEncoderBitRate
-                let profile:String = videoEncoderProfile
+            do {
+                // Calculate value for AVVideoExpectedSourceFrameRateKey
+                var srcFPS:Double = 30.0
+                if let duration = sampleDurationVideo { // Using sampleDurationVideo instead of resampleDuration here
+                    assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
+                    srcFPS = (1.0/duration.seconds)
+                } else if let sb = sampleBuffer {
+                    let duration = CMSampleBufferGetDuration(sb)
+                    assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
+                    srcFPS = (1.0/duration.seconds)
+                }
+                
+                // Calculate value for AVVideoMaxKeyFrameIntervalKey
+                let maxKeyFrameIntervalFrames:Int = min(1, Int(srcFPS * maxKeyFrameIntervalSeconds))
+                
+                // Prepare value for AVVideoCompressionPropertiesKey
                 compressionProperties = [
-                    AVVideoAverageBitRateKey : NSNumber(value:bitrate),
-                    AVVideoMaxKeyFrameIntervalKey : NSNumber(value:90),
-                    AVVideoMaxKeyFrameIntervalDurationKey : NSNumber(value:3.0),
-                    AVVideoAllowFrameReorderingKey : NSNumber(value:true),
-                    AVVideoProfileLevelKey : profile,
+                    AVVideoAverageBitRateKey : videoEncoderBitRate,
+                    AVVideoMaxKeyFrameIntervalKey : maxKeyFrameIntervalFrames,
+                    AVVideoMaxKeyFrameIntervalDurationKey : maxKeyFrameIntervalSeconds,
+                    AVVideoAllowFrameReorderingKey : true,
+                    AVVideoProfileLevelKey : videoEncoderProfile,
                     AVVideoH264EntropyModeKey : AVVideoH264EntropyModeCABAC,
-                    //AVVideoExpectedSourceFrameRateKey : NSNumber(value:30),
-                    //AVVideoAverageNonDroppableFrameRateKey : NSNumber(value:10),
+                    AVVideoExpectedSourceFrameRateKey : srcFPS,
                 ]
+                
+                if maxKeyFrameIntervalFrames == 1 { // key frame only stream
+                    compressionProperties.removeValue(forKey: AVVideoMaxKeyFrameIntervalDurationKey)
+                }
+                if videoEncoderBitRate == 0 { // let compressor to decide bit rate
+                    compressionProperties.removeValue(forKey: AVVideoAverageBitRateKey)
+                }
+                if codec != .h264 { // AVVideoH264EntropyModeKey is h264 only
+                    compressionProperties.removeValue(forKey: AVVideoH264EntropyModeKey)
+                }
+                
+                /*
+                // AVVideoAverageNonDroppableFrameRateKey is not supported by h264/HEVC Hardware encoder...
+                let nonDropRatio = 0.5 // The ratio of NonDroppable per total frames (0 < ratio <= 1.0)
+                if 0 < nonDropRatio, nonDropRatio <= 1.0 {
+                    let nonDropFPS:Double = (srcFPS * nonDropRatio)
+                    compressionProperties[AVVideoAverageNonDroppableFrameRateKey] = NSNumber(value:nonDropFPS)
+                }
+                 */
             }
-            
-            // Source Frame Rate hint
-            var srcFPS:Double = 30.0
-            if let duration = sampleDurationVideo { // Using sampleDurationVideo instead of resampleDuration here
-                assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
-                srcFPS = (1.0/duration.seconds)
-            } else if let sb = sampleBuffer {
-                let duration = CMSampleBufferGetDuration(sb)
-                assert(CMTIME_IS_NUMERIC(duration) && duration.seconds > 0)
-                srcFPS = (1.0/duration.seconds)
-            }
-            compressionProperties[AVVideoExpectedSourceFrameRateKey] = NSNumber(value:srcFPS)
             
             //
             if compressionProperties.count > 0 {

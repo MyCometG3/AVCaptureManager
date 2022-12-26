@@ -136,6 +136,8 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var videoEncoderProfile : String = AVVideoProfileLevelH264MainAutoLevel
     /// VideoEncoder bitRate. Default is H264ProfileLevel.MP_40.maxRate. NOTE: AVVideoCodecType.h264 only.
     open var videoEncoderBitRate : Int = H264ProfileLevel.MP_40.maxRate
+    /// VideoEncoder key frame interval limit in seconds. Set 0.0 to make key frame only stream.
+    open var maxKeyFrameIntervalSeconds : Double = 3.0
     
     /// AudioEncoder. Default is kAudioFormatMPEG4AAC. Use updateAudioSettings() to modify detailed parameters.
     open var audioEncodeType : AudioFormatID = kAudioFormatMPEG4AAC
