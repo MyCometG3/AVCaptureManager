@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		1615DB3029598AC1006196B3 /* AVCaptureManager+CodecSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1615DB2F29598AC1006196B3 /* AVCaptureManager+CodecSupport.swift */; };
 		1618D3011D56F70C00000D1D /* AVCaptureManager.h in Headers */ = {isa = PBXBuildFile; fileRef = 1618D3001D56F70C00000D1D /* AVCaptureManager.h */; settings = {ATTRIBUTES = (Public, ); }; };
 		1618D3091D56F75000000D1D /* AVCaptureManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1618D3081D56F75000000D1D /* AVCaptureManager.swift */; };
 		1618D30B1D56FA2B00000D1D /* VideoDecompressor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1618D30A1D56FA2B00000D1D /* VideoDecompressor.swift */; };
@@ -21,6 +22,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		1615DB2F29598AC1006196B3 /* AVCaptureManager+CodecSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AVCaptureManager+CodecSupport.swift"; sourceTree = "<group>"; };
 		1618D2FD1D56F70C00000D1D /* AVCaptureManager.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = AVCaptureManager.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		1618D3001D56F70C00000D1D /* AVCaptureManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AVCaptureManager.h; sourceTree = "<group>"; };
 		1618D3021D56F70C00000D1D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
@@ -70,6 +72,7 @@
 				1618D3001D56F70C00000D1D /* AVCaptureManager.h */,
 				1618D3021D56F70C00000D1D /* Info.plist */,
 				1618D3081D56F75000000D1D /* AVCaptureManager.swift */,
+				1615DB2F29598AC1006196B3 /* AVCaptureManager+CodecSupport.swift */,
 				16308AE32943FB0B00A5DB05 /* AVCaptureManager+Custom.swift */,
 				16308AE92948848300A5DB05 /* AVCaptureManager+Timecode.swift */,
 				16633B97294E8D1C008479FC /* AVCaptureManager+Trim.swift */,
@@ -173,6 +176,7 @@
 				16308AE22943F72300A5DB05 /* AVCaptureVideoDataOutput+Missing.swift in Sources */,
 				16308AEA2948848300A5DB05 /* AVCaptureManager+Timecode.swift in Sources */,
 				16308AE62943FF8600A5DB05 /* AVCaptureManager+Desc.swift in Sources */,
+				1615DB3029598AC1006196B3 /* AVCaptureManager+CodecSupport.swift in Sources */,
 				16308AE42943FB0B00A5DB05 /* AVCaptureManager+Custom.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -330,6 +330,20 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             let codec :AVVideoCodecType = videoEncoderType
             videoOutputSettings[AVVideoCodecKey] = codec
             
+            if debugDumpSupportedPropertiesVideo {
+                // debug - verify compressor supported properties
+                let key:String? = nil // AVVideoAllowFrameReorderingKey, etc.
+                let encoder:CMVideoCodecType = fourCC(avVideoCodecType: codec)
+                if let key = key {
+                    let result:CFDictionary? = checkVTSupportedProperties(encoder: encoder,
+                                                                          accelerator: true,
+                                                                          key: key)
+                    print(key, ":", result ?? "n/a")
+                } else {
+                    _ = checkVTSupportedProperties(encoder: encoder, accelerator: true, key: nil)
+                }
+            }
+            
             var compressionProperties :[String:Any] = [:]
             do {
                 // Calculate value for AVVideoExpectedSourceFrameRateKey
