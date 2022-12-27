@@ -136,7 +136,7 @@ extension AVCaptureManager {
         return CMVideoCodecType(fourCC)
     }
     
-    private func fourCC(str src: String) -> UInt32 {
+    internal func fourCC(str src: String) -> UInt32 {
         var fourCC: UInt32 = 0
         if (src.count == 4 && src.utf8.count == 4) {
             for char: UInt8 in src.utf8 {
@@ -153,7 +153,7 @@ extension AVCaptureManager {
         return AVVideoCodecType(rawValue: fourCC)
     }
     
-    private func fourCC(uint32 src: UInt32) -> String {
+    internal func fourCC(uint32 src: UInt32) -> String {
         let c1 : UInt32 = (src >> 24) & 0xFF
         let c2 : UInt32 = (src >> 16) & 0xFF
         let c3 : UInt32 = (src >>  8) & 0xFF

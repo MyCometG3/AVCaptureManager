@@ -16,7 +16,7 @@ extension AVCaptureVideoDataOutput {
     // https://github.com/apple/swift/blob/master/stdlib/public/SDK/AVFoundation/AVCaptureVideoDataOutput.swift
     
     @nonobjc
-    public var availableVideoCVPixelFormatTypes :[Any]! {
+    public var availableVideoCVPixelFormatTypes :[NSNumber] {
         return __availableVideoCVPixelFormatTypes
     }
     

@@ -87,8 +87,8 @@ extension AVCaptureManager {
                 let description : CMFormatDescription = (format as AnyObject).formatDescription
                 print(": description = \(description)")
                 
-                let mediaTypeString = fourCharString(CMFormatDescriptionGetMediaType(description))
-                let mediaSubTypeString = fourCharString(CMFormatDescriptionGetMediaSubType(description))
+                let mediaTypeString = fourCC(uint32: CMFormatDescriptionGetMediaType(description))
+                let mediaSubTypeString = fourCC(uint32: CMFormatDescriptionGetMediaSubType(description))
                 print(": \"\(mediaTypeString)\", \"\(mediaSubTypeString)\"")
                 
                 let extensions = CMFormatDescriptionGetExtensions(description)
@@ -127,8 +127,8 @@ extension AVCaptureManager {
                 let description : CMFormatDescription = (format as AnyObject).formatDescription
                 print(": description = \(description)")
                 
-                let mediaTypeString = fourCharString(CMFormatDescriptionGetMediaType(description))
-                let mediaSubTypeString = fourCharString(CMFormatDescriptionGetMediaSubType(description))
+                let mediaTypeString = fourCC(uint32: CMFormatDescriptionGetMediaType(description))
+                let mediaSubTypeString = fourCC(uint32: CMFormatDescriptionGetMediaSubType(description))
                 print(": \"\(mediaTypeString)\", \"\(mediaSubTypeString)\"")
                 
                 let extensions = CMFormatDescriptionGetExtensions(description)
@@ -180,8 +180,8 @@ extension AVCaptureManager {
                 
                 // : availableVideoCVPixelFormatTypes = ["2vuy", "yuvs", "420v", "420f", "    ", "BGRA"]
                 var pixfmtTypesStr :[String] = []
-                for value in pixfmtTypes! {
-                    let fourcc = fourCharString((value as AnyObject).uint32Value)
+                for value in pixfmtTypes {
+                    let fourcc = fourCC(uint32: value.uint32Value)
                     pixfmtTypesStr.append(fourcc)
                 }
                 print(": availableVideoCVPixelFormatTypes = \(pixfmtTypesStr) in FourCharCode Array")
@@ -327,7 +327,7 @@ extension AVCaptureManager {
             "modelID" : device.modelID,
             "localizedName" : device.localizedName,
             "manufacturer" : device.manufacturer,
-            "transportType" : fourCharString(UInt32.init(device.transportType)),
+            "transportType" : fourCC(uint32: UInt32(device.transportType)),
             "connected" : device.isConnected,
             "inUseByAnotherApplication" : device.isInUseByAnotherApplication,
             "suspended" : device.isSuspended,
@@ -352,25 +352,6 @@ extension AVCaptureManager {
         }
         
         return deviceInfoArray
-    }
-    
-    /// Translate OSType into String
-    /// - Parameter type: OSType
-    /// - Returns: String representation
-    internal func fourCharString(_ type :OSType) -> String {
-        let c1 : UInt32 = (type >> 24) & 0xFF
-        let c2 : UInt32 = (type >> 16) & 0xFF
-        let c3 : UInt32 = (type >>  8) & 0xFF
-        let c4 : UInt32 = (type      ) & 0xFF
-        let bytes: [CChar] = [
-            CChar( c1 == 0x00 ? 0x20 : c1),
-            CChar( c2 == 0x00 ? 0x20 : c2),
-            CChar( c3 == 0x00 ? 0x20 : c3),
-            CChar( c4 == 0x00 ? 0x20 : c4),
-            CChar(0x00)
-        ]
-        
-        return String(cString: bytes)
     }
     
 }
