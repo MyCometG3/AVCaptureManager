@@ -147,6 +147,10 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var audioEncoderBitRate : Int = 256*1000
     /// AudioEncoder bitRate Strategy. Default is AVAudioBitRateStrategy_Constant.
     open var audioEncoderStrategy : String = AVAudioBitRateStrategy_Constant
+    /// Status description returned from AVAssetWriter
+    internal (set) public var lastAVAssetWriterStatus:String? = nil
+    /// Error description returned from AVAssetWriter
+    internal (set) public var lastAVAssetWriterError:String? = nil
     
     /* ======================================================================================== */
     // MARK: - internal variables - session
