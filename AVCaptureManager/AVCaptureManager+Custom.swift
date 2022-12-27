@@ -483,19 +483,35 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             audioOutputSettings = updateAudioSettings(audioOutputSettings)
         }
         
-        // Clipping for kAudioFormatMPEG4AAC
-        if audioFormat == kAudioFormatMPEG4AAC {
-            let sampleRateMax = Double(96000.0)
-            let sampleRate = audioOutputSettings[AVSampleRateKey] as? Double
-            if let sampleRate = sampleRate, sampleRate > sampleRateMax {
-                audioOutputSettings[AVSampleRateKey] = sampleRateMax
-            }
+        // Adjust parameters per audioFormat requirement
+        if audioFormat == kAudioFormatAppleLossless {
+            let srcBitDepth = (audioDeviceDecompressedFormat[AVLinearPCMBitDepthKey] as! UInt32)
+            audioOutputSettings[AVEncoderBitDepthHintKey] = srcBitDepth
             
-            let bitRateMax = UInt32(320*1024)
-            let bitRate = audioOutputSettings[AVEncoderBitRateKey] as? UInt32
-            if let bitRate = bitRate, bitRate > bitRateMax {
-                audioOutputSettings[AVEncoderBitRateKey] = bitRateMax
-            }
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+        }
+        if audioFormat == kAudioFormatFLAC {
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+        }
+        if audioFormat == kAudioFormatMPEG4AAC {
+            var bitRateAAC = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAAC = min(max(bitRateAAC,64000),320000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAAC
+        }
+        if audioFormat == kAudioFormatMPEG4AAC_HE {
+            var bitRateAACHE = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAACHE = min(max(bitRateAACHE,32000),80000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHE
+        }
+        if audioFormat == kAudioFormatMPEG4AAC_HE_V2 {
+            var bitRateAACHEv2 = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAACHEv2 = min(max(bitRateAACHEv2,20000),48000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHEv2
+        }
+        if audioFormat == kAudioFormatOpus {
+            // AFAIK, no parameter restriction
         }
         
         return audioOutputSettings
