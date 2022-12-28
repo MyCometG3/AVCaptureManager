@@ -9,7 +9,7 @@ including A/V mixed connection like DV.
 - __Dependency__: AVFoundation/VideoToolbox/CoreMediaIO
 - __Architecture__: Universal binary (x86_64 + arm64)
 
-#### NOTE: No binary is available for version 2.0.0a yet.
+#### NOTE: No binary is available for version 2.0.0b yet.
 
 #### Basic Usage
 
