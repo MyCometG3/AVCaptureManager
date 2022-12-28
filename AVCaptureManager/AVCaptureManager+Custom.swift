@@ -144,7 +144,11 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     avAssetWriterInputVideo = AVAssetWriterInput(mediaType: .video,
                                                                  outputSettings: settings)
                 } else {
-                    print("ERROR: videoOutputSettings is not OK")
+                    let defaultStr : String = "AVAssetWriter.canApply() failed with Video outputSettings."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status() = \(statusStr)")
+                    print("ERROR: \(errorStr)")
                     return false
                 }
             }
@@ -170,7 +174,11 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     avAssetWriterInputAudio = AVAssetWriterInput(mediaType: .audio,
                                                                  outputSettings: settings)
                 } else {
-                    print("ERROR: audioOutputSettings is not OK")
+                    let defaultStr : String = "AVAssetWriter.canApply() failed with Audio outputSettings."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status() = \(statusStr)")
+                    print("ERROR: \(errorStr)")
                     return false
                 }
             }
@@ -205,7 +213,11 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     avAssetWriter.add(avAssetWriterInputVideo)
                     videoReady = true
                 } else {
-                    print("ERROR: avAssetWriter.addInput(avAssetWriterInputVideo)")
+                    let defaultStr : String = "AVAssetWriter.canAdd(avAssetWriterInputVideo) failed."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status() = \(statusStr)")
+                    print("ERROR: \(errorStr)")
                 }
             }
             if let avAssetWriterInputAudio = avAssetWriterInputAudio {
@@ -214,7 +226,11 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     avAssetWriter.add(avAssetWriterInputAudio)
                     audioReady = true
                 } else {
-                    print("ERROR: avAssetWriter.addInput(avAssetWriterInputAudio)")
+                    let defaultStr : String = "AVAssetWriter.canAdd(avAssetWriterInputAudio) failed."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status() = \(statusStr)")
+                    print("ERROR: \(errorStr)")
                 }
             }
             if timeCodeFormatType != nil && smpteReadyVideo {
@@ -223,7 +239,11 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                         avAssetWriterInputTimeCode.expectsMediaDataInRealTime = true
                         avAssetWriter.add(avAssetWriterInputTimeCode)
                     } else {
-                        print("ERROR: avAssetWriter.add(avAssetWriterInputTimeCode)")
+                        let defaultStr : String = "AVAssetWriter.canAdd(avAssetWriterInputTimeCode) failed."
+                        let statusStr : String = parseAVAssetWriterStatus("n/a")
+                        let errorStr : String = parseAVAssetWriterError(defaultStr)
+                        print("ERROR: AVAssetWriter.status() = \(statusStr)")
+                        print("ERROR: \(errorStr)")
                     }
                 }
             }
@@ -235,15 +255,28 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                     return true
                 }
                 
-                let statusStr : String = parseAVAssetWriterStatus() ?? "n/a"
-                let errorStr : String = parseAVAssetWriterError() ?? "n/a"
-                print("ERROR: AVAssetWriter.startWriting() = \(statusStr)")
+                let defaultStr : String = "AVAssetWriter.startWriting() failed."
+                let statusStr : String = parseAVAssetWriterStatus("n/a")
+                let errorStr : String = parseAVAssetWriterError(defaultStr)
+                print("ERROR: AVAssetWriter.status = \(statusStr)")
                 print("ERROR: \(errorStr)")
-                return false
+            } else {
+                if lastAVAssetWriterError == nil {
+                    let defaultStr : String = "AVAssetWriter is not ready to startWriting()."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status = \(statusStr)")
+                    print("ERROR: \(errorStr)")
+                }
             }
+        } else {
+            // Failed to init AVAssetWriter with specified fileURL
+            lastAVAssetWriterStatus = "n/a"
+            lastAVAssetWriterError = "AVAssetWriter failed to access \(fileUrl.path)"
+            print("ERROR: AVAssetWriter.status =", lastAVAssetWriterStatus!)
+            print("ERROR:", lastAVAssetWriterError!)
         }
         
-        print("ERROR: Failed to init AVAssetWriter.")
         return false
     }
     
@@ -277,9 +310,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 if let avAssetWriter = self.avAssetWriter {
                     // Check if completed
                     if avAssetWriter.status != .completed {
-                        let statusStr : String = self.parseAVAssetWriterStatus() ?? "n/a"
-                        let errorStr : String = self.parseAVAssetWriterError() ?? "n/a"
-                        print("ERROR: AVAssetWriter.finishWritingWithCompletionHandler() = \(statusStr)")
+                        let defaultStr : String = "AVAssetWriter.finishWriting(completionHandler:) failed."
+                        let statusStr : String = parseAVAssetWriterStatus("n/a")
+                        let errorStr : String = parseAVAssetWriterError(defaultStr)
+                        print("ERROR: AVAssetWriter.status = \(statusStr)")
                         print("ERROR: \(errorStr)")
                     }
                     
@@ -668,9 +702,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 if avAssetWriterInputAudio.append(sampleBuffer) {
                     return
                 } else {
-                    let statusStr : String = parseAVAssetWriterStatus() ?? "n/a"
-                    let errorStr : String = parseAVAssetWriterError() ?? "n/a"
-                    print("ERROR: Could not write audio sample buffer.(\(statusStr))")
+                    let defaultStr : String = "AVAssetWriterInputAudio.append() failed."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status = \(statusStr)")
                     print("ERROR: \(errorStr)")
                 }
             } else {
@@ -688,9 +723,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 if avAssetWriterInputVideo.append(sampleBuffer) {
                     return
                 } else {
-                    let statusStr : String = parseAVAssetWriterStatus() ?? "n/a"
-                    let errorStr : String = parseAVAssetWriterError() ?? "n/a"
-                    print("ERROR: Could not write video sample buffer.(\(statusStr))")
+                    let defaultStr : String = "AVAssetWriterInputVideo.append() failed."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status = \(statusStr)")
                     print("ERROR: \(errorStr)")
                 }
             } else {
@@ -708,9 +744,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 if avAssetWriterInputTimeCode.append(sampleBuffer) {
                     return
                 } else {
-                    let statusStr : String = parseAVAssetWriterStatus() ?? "n/a"
-                    let errorStr : String = parseAVAssetWriterError() ?? "n/a"
-                    print("ERROR: Could not write timecode sample buffer.(\(statusStr))")
+                    let defaultStr : String = "AVAssetWriterInputTimeCode.append() failed."
+                    let statusStr : String = parseAVAssetWriterStatus("n/a")
+                    let errorStr : String = parseAVAssetWriterError(defaultStr)
+                    print("ERROR: AVAssetWriter.status = \(statusStr)")
                     print("ERROR: \(errorStr)")
                 }
             } else {
@@ -919,9 +956,10 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
     }
     
     /// Parse AVAssetWriter.status and return description string.
+    /// - Parameter defaultStr: default description
     /// - Returns: status description
-    private func parseAVAssetWriterStatus() -> String? {
-        var statusDescription:String? = nil
+    private func parseAVAssetWriterStatus(_ defaultStr:String) -> String {
+        var statusDescription:String = defaultStr
         if let avAssetWriter = avAssetWriter {
             // In case of faulty state
             let statusArray : [AVAssetWriter.Status : String] = [
@@ -932,16 +970,17 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 .cancelled  : "AVAssetWriter.Status.Cancelled"
             ]
             let status = avAssetWriter.status
-            statusDescription = statusArray[status]
+            statusDescription = statusArray[status] ?? defaultStr
         }
         lastAVAssetWriterStatus = statusDescription
         return statusDescription
     }
     
     /// Parse AVAssetWriter.error and return description string.
+    /// - Parameter defaultStr: default description
     /// - Returns: error description
-    private func parseAVAssetWriterError() -> String? {
-        var errorDescription:String? = nil
+    private func parseAVAssetWriterError(_ defaultStr:String) -> String {
+        var errorDescription:String = defaultStr
         if let avAssetWriter = avAssetWriter, let err = avAssetWriter.error {
             if let err = err as NSError? {
                 let domain:String = err.domain

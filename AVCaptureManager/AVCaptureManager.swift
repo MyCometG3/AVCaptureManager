@@ -68,6 +68,15 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
     }
     
+    // MARK: - status parameters
+    
+    /// Video dimension received from input device
+    internal (set) public var videoSize : CGSize? = nil
+    /// Status description returned from AVAssetWriter
+    internal (set) public var lastAVAssetWriterStatus:String? = nil
+    /// Error description returned from AVAssetWriter
+    internal (set) public var lastAVAssetWriterError:String? = nil
+    
     // MARK: - session parameters
     /*
      * Followings are session settings.
@@ -93,9 +102,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Decompressed pixel format; either 8bit or 10bit, 422 or 444 is recommended. Default is kCMPixelFormat_422YpCbCr8.
     open var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8
-    
-    /// Video dimension received from input device
-    internal (set) public var videoSize : CGSize? = nil
     
     // MARK: - custom compression parameters
     /*
@@ -147,10 +153,6 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var audioEncoderBitRate : Int = 256*1000
     /// AudioEncoder bitRate Strategy. Default is AVAudioBitRateStrategy_Constant.
     open var audioEncoderStrategy : String = AVAudioBitRateStrategy_Constant
-    /// Status description returned from AVAssetWriter
-    internal (set) public var lastAVAssetWriterStatus:String? = nil
-    /// Error description returned from AVAssetWriter
-    internal (set) public var lastAVAssetWriterError:String? = nil
     
     /* ======================================================================================== */
     // MARK: - internal variables - session
@@ -338,7 +340,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         lastSeqVideo = kCMIOInvalidSequenceNumber
         lastSeqAudio = kCMIOInvalidSequenceNumber
         
-        // reset public parameters (a few)
+        // reset status parameters
+        lastAVAssetWriterStatus = nil
+        lastAVAssetWriterError = nil
         videoSize = nil
     }
     
