@@ -13,7 +13,9 @@ import AVFoundation
 import CoreMediaIO.CMIOSampleBuffer
 
 // Missing CoreMediaIO.CMIOSampleBuffer definitions (CMIOSampleBuffer.h)
+
 internal let kCMIOInvalidSequenceNumber:UInt64 = ~UInt64(0)
+
 internal func CMIOGetNextSequenceNumber(_ x:UInt64) -> UInt64 {
     return UInt64( (kCMIOInvalidSequenceNumber == x) ? 0 : (x + 1) )
 }

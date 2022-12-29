@@ -15,7 +15,7 @@ import CoreMediaIO.CMIOSampleBuffer
 extension AVCaptureManager {
     
     /* ======================================================================================== */
-    // MARK: - private Timecode support func
+    // MARK: - internal Timecode support func
     /* ======================================================================================== */
     
     /// Create TimeCode CMSampleBuffer from CMIOSampleBufferAttatchment with same timingInfo as source sampleBuffer
@@ -153,6 +153,10 @@ extension AVCaptureManager {
         
         return cvSmpteTime
     }
+    
+    /* ======================================================================================== */
+    // MARK: - private Timecode support func
+    /* ======================================================================================== */
     
     /// Create a complete copy of SMPTETime as CVSMPTETime
     /// - Parameter smpteTime: SMPTETime in CoreAudioBaseTypes.h

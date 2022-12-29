@@ -12,9 +12,7 @@ import Foundation
 import AVFoundation
 
 extension AVCaptureVideoDataOutput {
-    // Swift header bug?
-    // https://github.com/apple/swift/blob/master/stdlib/public/SDK/AVFoundation/AVCaptureVideoDataOutput.swift
-    
+        
     @nonobjc
     public var availableVideoCVPixelFormatTypes :[NSNumber] {
         return __availableVideoCVPixelFormatTypes
@@ -24,4 +22,5 @@ extension AVCaptureVideoDataOutput {
     public var availableVideoPixelFormatTypes: [OSType] {
         return __availableVideoCVPixelFormatTypes.map { $0.uint32Value } as [OSType]
     }
+    
 }

@@ -13,6 +13,7 @@ import AVFoundation
 import VideoToolbox
 
 class VideoDecompressor : NSObject {
+    
     /* ======================================================================================== */
     // MARK: - internal variables
     /* ======================================================================================== */
@@ -194,6 +195,8 @@ class VideoDecompressor : NSObject {
         }
     }
     
+    /// Test/Enable if decoder supports deinterlacing video
+    /// - Parameter session: VTDecompressionSession
     private func verifyDeinterlaceSupport(_ session: VTDecompressionSession) {
         // Query available supported property keys of the decoder
         var support: CFDictionary? = nil
@@ -243,6 +246,9 @@ class VideoDecompressor : NSObject {
         }
     }
     
+    /// Translate any CFTypeRef to UnsafeRawPointer
+    /// - Parameter cfType: CFTypeRef
+    /// - Returns: UnsafeRawPointer
     private func ptr(_ cfType :CFTypeRef) -> UnsafeRawPointer {
         let ptr = Unmanaged.passUnretained(cfType).toOpaque()
         return UnsafeRawPointer(ptr)
@@ -309,4 +315,5 @@ class VideoDecompressor : NSObject {
             }
         }
     }
+    
 }

@@ -15,9 +15,15 @@ import VideoToolbox
 extension AVCaptureManager {
     
     /* ======================================================================================== */
-    // MARK: - Debug - query codec property support
+    // MARK: - internal/private query video codec property support
     /* ======================================================================================== */
     
+    /// Query video compressor supported properties dictionary
+    /// - Parameters:
+    ///   - codec: video encoder
+    ///   - enableHW: use HW accelerator
+    ///   - key: Property Key to query. Specify nil to get whole dictionary.
+    /// - Returns: Resulted CFDictionary
     internal func checkVTSupportedProperties(encoder codec:CMVideoCodecType,
                                              accelerator enableHW:Bool,
                                              key:String?) -> CFDictionary?
@@ -37,6 +43,13 @@ extension AVCaptureManager {
         return nil
     }
     
+    /// Query video decompressor supported properties dictionary
+    /// - Parameters:
+    ///   - codec: video decoder
+    ///   - srcFD: source CMFormatDescription
+    ///   - enableHW: use HW accelerator
+    ///   - key: Property Key to query. Specify nil to get whole dictionary.
+    /// - Returns: Resulted CFDictionary
     internal func checkVTSupportedProperties(decoder codec:CMVideoCodecType,
                                              formatDescription srcFD:CMVideoFormatDescription,
                                              accelerator enableHW:Bool,
@@ -58,6 +71,11 @@ extension AVCaptureManager {
         return nil
     }
     
+    /// Create dummy compression session
+    /// - Parameters:
+    ///   - codec: video encoder
+    ///   - enableHW: use HW accelerator
+    /// - Returns: true if no error
     private func createDummySession(encoder codec:CMVideoCodecType,
                                     accelerator enableHW:Bool) -> VTCompressionSession?
     {
@@ -82,6 +100,12 @@ extension AVCaptureManager {
         return (status == noErr ? session : nil)
     }
     
+    /// Create dummy decompression session
+    /// - Parameters:
+    ///   - codec: video decoder
+    ///   - srcFD: source CMFormatDescription
+    ///   - enableHW: use HW accelerator
+    /// - Returns: true if no error
     private func createDummySession(decoder codec:CMVideoCodecType,
                                     formatDescription srcFD:CMVideoFormatDescription,
                                     accelerater enableHW:Bool) -> VTDecompressionSession?
@@ -105,6 +129,9 @@ extension AVCaptureManager {
         return (status == noErr ? session : nil)
     }
     
+    /// Copy supported properties dictionary from VTSession
+    /// - Parameter session: VTSession for decode or encode
+    /// - Returns: Resulted CFDictionary
     private func getSupportedDictionary(_ session:VTSession) -> CFDictionary? {
         //
         var dict:CFDictionary? = nil
@@ -113,6 +140,11 @@ extension AVCaptureManager {
         return (status == noErr ? dict : nil)
     }
     
+    /// Extract CFDictionary value from parent CFDictionary
+    /// - Parameters:
+    ///   - dict: parent CFDictionary
+    ///   - key: Key to test
+    /// - Returns: Resulted CFDictionary
     private func evaluateDictionary(_ dict: CFDictionary, _ key: String) -> CFDictionary? {
         let _key = key as NSString
         let _dict = dict as NSDictionary
@@ -126,16 +158,21 @@ extension AVCaptureManager {
     }
     
     /* ======================================================================================== */
-    // MARK: - Debug - FourCC conversion utilities
+    // MARK: - internal/private FourCC conversion utilities
     /* ======================================================================================== */
     
-    //
+    /// Translate AVVideoCodecType to CMVideoCodecType
+    /// - Parameter codec: AVVideoCodecType
+    /// - Returns: CMVideoCodecType
     internal func fourCC(avVideoCodecType codec: AVVideoCodecType) -> CMVideoCodecType {
         let src: String = codec.rawValue
         let fourCC: UInt32 = fourCC(str: src)
         return CMVideoCodecType(fourCC)
     }
     
+    /// Translate String to FourCharCode
+    /// - Parameter src: String
+    /// - Returns: FourCharCode
     internal func fourCC(str src: String) -> UInt32 {
         var fourCC: UInt32 = 0
         if (src.count == 4 && src.utf8.count == 4) {
@@ -147,12 +184,18 @@ extension AVCaptureManager {
     }
     
     //
+    /// Translate CMVideoCodecType to AVVideoCodecType
+    /// - Parameter codec: CMVideoCodecType
+    /// - Returns: AVVideoCodecType
     internal func fourCC(cmVideoCodecType codec: CMVideoCodecType) -> AVVideoCodecType {
         let src: UInt32 = UInt32(codec)
         let fourCC :String = fourCC(uint32: src)
         return AVVideoCodecType(rawValue: fourCC)
     }
     
+    /// Translate FourCharCode to String
+    /// - Parameter src: FourCharCode
+    /// - Returns: String
     internal func fourCC(uint32 src: UInt32) -> String {
         let c1 : UInt32 = (src >> 24) & 0xFF
         let c2 : UInt32 = (src >> 16) & 0xFF
@@ -174,7 +217,12 @@ extension AVCaptureManager {
         return (printable ? CChar(c) : CChar(placeholder))
     }
     
-    //
+    /* ======================================================================================== */
+    // MARK: - internal encoder specific support func
+    /* ======================================================================================== */
+    
+    /// Adjust H264 Compression Properties
+    /// - Parameter compressionProperties: AVVideoCompressionProperties (inout)
     internal func adjustCompressionPropertiesH264(_ compressionProperties:inout [String:Any]) {
         let bitRate = compressionProperties[AVVideoAverageBitRateKey] as? Int
         let profile = compressionProperties[AVVideoProfileLevelKey] as? CFTypeRef
@@ -236,7 +284,8 @@ extension AVCaptureManager {
         }
     }
     
-    //
+    /// Adjust HEVC Compression Properties
+    /// - Parameter compressionProperties: AVVideoCompressionProperties (inout)
     internal func adjustCompressionPropertiesHEVC(_ compressionProperties:inout [String:Any]) {
         let bitRate = compressionProperties[AVVideoAverageBitRateKey] as? Int
         let profile = compressionProperties[AVVideoProfileLevelKey] as? CFTypeRef
@@ -262,7 +311,10 @@ extension AVCaptureManager {
         }
     }
     
-    //
+    /// Adjust Audio Compression Settings
+    /// - Parameters:
+    ///   - audioFormat: AudioFormatID
+    ///   - audioOutputSettings: audioOutputSettings (inout)
     internal func adjustSettingsAudio(_ audioFormat:AudioFormatID, _ audioOutputSettings:inout [String:Any]) {
         if audioFormat == kAudioFormatAppleLossless {
             let srcBitDepth = (audioDeviceDecompressedFormat[AVLinearPCMBitDepthKey] as! UInt32)

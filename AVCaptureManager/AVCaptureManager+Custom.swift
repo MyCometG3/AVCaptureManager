@@ -16,7 +16,7 @@ import VideoToolbox
 extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCaptureAudioDataOutputSampleBufferDelegate {
     
     /* ======================================================================================== */
-    // MARK: - private session configuration
+    // MARK: - internal session configuration
     /* ======================================================================================== */
     
     /// Attach Captured Video Data Output (either device native or decompressed format)
@@ -344,6 +344,8 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             }
         }
     }
+    
+    // MARK: -
     
     /// Generate video compression setting
     /// - Parameter sampleBuffer: source CMSampleBuffer if available
@@ -676,6 +678,8 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         }
     }
     
+    // MARK: -
+    
     /// Write Audio SampleBuffer
     /// - Parameter sampleBuffer: CMSampleBuffer to write
     private func writeAudioSampleBuffer(_ sampleBuffer: CMSampleBuffer) {
@@ -904,7 +908,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         return cgSize
     }
     
-    /// Check discontinuity of video/audio sampleBuffer
+    /// (Debug) Check discontinuity of video/audio sampleBuffer
     /// - Parameter sampleBuffer: CMSampleBuffer to inspect
     /// - Returns: true if any gap is detected, false if no issue
     private func detectDiscontinuity(_ sampleBuffer: CMSampleBuffer) -> Bool {
@@ -978,4 +982,5 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         lastAVAssetWriterError = errorDescription
         return errorDescription
     }
+    
 }

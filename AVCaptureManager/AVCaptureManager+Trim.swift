@@ -13,6 +13,10 @@ import AVFoundation
 
 extension AVCaptureManager {
     
+    /* ======================================================================================== */
+    // MARK: - public TrimMovie support
+    /* ======================================================================================== */
+    
     /// Trim no Video timeRange at the beggining/end, if exist(s).
     /// NOTE: if no trim is required, true returned and movie is kept untouched.
     /// - Parameter url: Movie file URL to modify
@@ -78,6 +82,10 @@ extension AVCaptureManager {
         if debugTrimMovie { print("# trimMovie: skipped.") }
         return true
     }
+    
+    /* ======================================================================================== */
+    // MARK: - private TrimMovie support
+    /* ======================================================================================== */
     
     /// Inspect movie for valid CMTimeRange of specified MediaCharacteristic
     /// - Parameters:
@@ -151,4 +159,5 @@ extension AVCaptureManager {
         
         return isMovie
     }
+    
 }

@@ -14,6 +14,39 @@ import AVFoundation
 extension AVCaptureManager {
     
     /* ======================================================================================== */
+    // MARK: - public device query API
+    /* ======================================================================================== */
+    
+    /// Device info array for muxed mediaType
+    /// - Returns: devices info
+    public func devicesMuxed() -> [Any]! {
+        let deviceArrayInfoMuxed = deviceInfoArray(mediaType: AVMediaType.muxed)
+        return deviceArrayInfoMuxed
+    }
+    
+    /// Device info array for video mediaType
+    /// - Returns: devices info
+    public func devicesVideo() -> [Any]! {
+        let deviceArrayInfoVideo = deviceInfoArray(mediaType: AVMediaType.video)
+        return deviceArrayInfoVideo
+    }
+    
+    /// Device info array for audio mediaType
+    /// - Returns: devices info
+    public func devicesAudio() -> [Any]! {
+        let deviceArrayInfoAudio = deviceInfoArray(mediaType: AVMediaType.audio)
+        return deviceArrayInfoAudio
+    }
+    
+    /// Device info for specified uniqueID
+    /// - Returns: devices info
+    public func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {
+        guard let device = AVCaptureDevice.init(uniqueID: uniqueID) else { return nil }
+        let deviceInfo: [String:Any] = deviceInfo(device)
+        return deviceInfo
+    }
+    
+    /* ======================================================================================== */
     // MARK: - public print description API
     /* ======================================================================================== */
     
@@ -30,35 +63,6 @@ extension AVCaptureManager {
         let deviceInfoAudio = devicesAudio()
         print("\n", "AVMediaTypeAudio: \(deviceInfoAudio?.count ?? 0) found:")
         deviceInfoAudio?.forEach{ info in print(": ", info )}
-    }
-    
-    /// (Debug) device info for muxed
-    /// - Returns: devices info
-    public func devicesMuxed() -> [Any]! {
-        let deviceArrayInfoMuxed = deviceInfoArray(mediaType: AVMediaType.muxed)
-        return deviceArrayInfoMuxed
-    }
-    
-    /// (Debug) device info for video
-    /// - Returns: devices info
-    public func devicesVideo() -> [Any]! {
-        let deviceArrayInfoVideo = deviceInfoArray(mediaType: AVMediaType.video)
-        return deviceArrayInfoVideo
-    }
-    
-    /// (Debug) device info for audio
-    /// - Returns: devices info
-    public func devicesAudio() -> [Any]! {
-        let deviceArrayInfoAudio = deviceInfoArray(mediaType: AVMediaType.audio)
-        return deviceArrayInfoAudio
-    }
-    
-    /// (Debug) device info for specified uniqueID
-    /// - Returns: devices info
-    public func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {
-        guard let device = AVCaptureDevice.init(uniqueID: uniqueID) else { return nil }
-        let deviceInfo: [String:Any] = deviceInfo(device)
-        return deviceInfo
     }
     
     /// (Debug) dump session diag info
@@ -209,6 +213,8 @@ extension AVCaptureManager {
     // MARK: - internal print description API
     /* ======================================================================================== */
     
+    /// (Debug) Print Video SampleBuffer Info
+    /// - Parameter sampleBuffer: CMSampleBuffer
     internal func printDescritionImageBuffer(_ sampleBuffer : CMSampleBuffer) {
         // Descriptioon For Video Sample Buffer
         let count = CMSampleBufferGetNumSamples(sampleBuffer)
@@ -238,6 +244,8 @@ extension AVCaptureManager {
         //print("### \(sampleBuffer)\n")
     }
     
+    /// (Debug) Print Audio SampleBuffer Info
+    /// - Parameter sampleBuffer: CMSampleBuffer
     internal func printDescriptionAudioBuffer(_ sampleBuffer : CMSampleBuffer) {
         // Descriptioon For Audio Sample Buffer
         
@@ -264,7 +272,7 @@ extension AVCaptureManager {
     /// (Debug) Get supported meia type by the device
     /// - Parameter device: AVCaptureDevice
     /// - Returns: String representation of supported AVMediaType(s) array
-    internal func mediaTypesDescription(for device:AVCaptureDevice) -> [String] {
+    private func mediaTypesDescription(for device:AVCaptureDevice) -> [String] {
         let array :[AVMediaType] = [.video,.audio,.text,.closedCaption,.subtitle,.timecode,.metadata,.muxed,.depthData]
         let result:[String] = array.filter{device.hasMediaType($0)}.map{$0.rawValue}
         return result
@@ -273,7 +281,7 @@ extension AVCaptureManager {
     /// (Debug) Get common FPS values which is supported by the device
     /// - Parameter device: AVCaptureDevice
     /// - Returns: String representation of supported common FPS(s) array
-    internal func supportedVideoFPSDescription(for device:AVCaptureDevice) -> [String] {
+    private func supportedVideoFPSDescription(for device:AVCaptureDevice) -> [String] {
         var result:[String] = []
         let formatArray = device.formats
         let testFPSArray:[Float64] = [12, 12.5, 14.985, 15, 23.976, 24, 25, 29.97, 30,
@@ -296,7 +304,7 @@ extension AVCaptureManager {
     ///   - duration: duration for query
     ///   - format: AVCaptureDevice.Format
     /// - Returns: true if supported
-    internal func validateSampleDuration(_ duration:CMTime, format:AVCaptureDevice.Format) -> Bool {
+    private func validateSampleDuration(_ duration:CMTime, format:AVCaptureDevice.Format) -> Bool {
         let rangeArray: [AVFrameRateRange] = format.videoSupportedFrameRateRanges
         for range in rangeArray {
             #if false
@@ -321,7 +329,7 @@ extension AVCaptureManager {
     /// (Debug) Device info for AVCaptureDevice
     /// - Parameter device: AVCaptureDevice
     /// - Returns: device info
-    internal func deviceInfo(_ device: AVCaptureDevice) -> [String:Any] {
+    private func deviceInfo(_ device: AVCaptureDevice) -> [String:Any] {
         var deviceInfo: [String:Any] = [
             "uniqueID" : device.uniqueID,
             "modelID" : device.modelID,
@@ -342,7 +350,7 @@ extension AVCaptureManager {
     /// (Debug) device info array for specified AVMediaType
     /// - Parameter type: AVMediaType
     /// - Returns: device info array
-    internal func deviceInfoArray(mediaType type: AVMediaType) -> [Any] {
+    private func deviceInfoArray(mediaType type: AVMediaType) -> [Any] {
         let deviceArray = AVCaptureDevice.devices(for: type)
         
         var deviceInfoArray = [Any]()

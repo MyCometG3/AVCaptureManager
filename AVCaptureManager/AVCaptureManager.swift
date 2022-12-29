@@ -11,21 +11,21 @@
 import Foundation
 import AVFoundation
 
-open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
+public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /* ======================================================================================== */
     // MARK: - public variables
     /* ======================================================================================== */
     
     /// preview video : CALayer
-    open var previewLayer : AVCaptureVideoPreviewLayer? {
+    public var previewLayer : AVCaptureVideoPreviewLayer? {
         get {
             return previewVideoLayer
         }
     }
     
     /// preview audio : Volume in 0.0 - 1.0 : Float.
-    open var volume : Float {
+    public var volume : Float {
         get {
             return _volume
         }
@@ -40,14 +40,14 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     /// recording duration in second : Float64.
-    open var duration : Float64 {
+    public var duration : Float64 {
         get {
             return _duration
         }
     }
     
     /// query current video deviceID
-    open var currentDeviceIDVideo : String? {
+    public var currentDeviceIDVideo : String? {
         get {
             var deviceID : String? = nil
             if let device = captureDeviceVideo {
@@ -58,7 +58,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     /// query current audio deviceID
-    open var currentDeviceIDAudio : String? {
+    public var currentDeviceIDAudio : String? {
         get {
             var deviceID : String? = nil
             if let device = captureDeviceAudio {
@@ -83,29 +83,29 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
      * Use closeSession()/openSession() to reflect any changes.
      */
     /// Special flag for muxed stream (Video/Audio muxed). e.g. DV devices
-    open var useMuxed : Bool = false
+    public var useMuxed : Bool = false
     /// Choose either "AVFoundation's session preset" or "custom compression".
-    open var usePreset : Bool = false
+    public var usePreset : Bool = false
     /// Preset for capture session
-    open var exportPreset : AVCaptureSession.Preset = .high
+    public var exportPreset : AVCaptureSession.Preset = .high
     
     /// Debug support - notification
-    open var debugObserver : Bool = false
+    public var debugObserver : Bool = false
     /// Debug support - trim movie
-    open var debugTrimMovie : Bool = false
+    public var debugTrimMovie : Bool = false
     /// Debug support - decode video; false allows device native format. Default is false.
-    open var debugDecodeVideo : Bool = false
+    public var debugDecodeVideo : Bool = false
     /// Debug support - decode audio; false allows device native format. Default is true.
-    open var debugDecodeAudio : Bool = true
+    public var debugDecodeAudio : Bool = true
     /// Debug support - dump video encoder supported properties
-    open var debugDumpSupportedPropertiesVideo : Bool = false
+    public var debugDumpSupportedPropertiesVideo : Bool = false
     /// Debug support - Adjust settings for Video
-    open var debugAdjustSettingsVideo : Bool = true
+    public var debugAdjustSettingsVideo : Bool = true
     /// Debug support - Adjust settings for Audio
-    open var debugAdjustSettingsAudio : Bool = true
+    public var debugAdjustSettingsAudio : Bool = true
     
     /// Decompressed pixel format; either 8bit or 10bit, 422 or 444 is recommended. Default is kCMPixelFormat_422YpCbCr8.
-    open var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8
+    public var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8
     
     // MARK: - custom compression parameters
     /*
@@ -113,13 +113,13 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
      * Use resetCompressionSettings() to reflect any changes.
      */
     /// Enable VideoTranscode or not
-    open var encodeVideo : Bool = true
+    public var encodeVideo : Bool = true
     /// Enable AudioTranscode or not
-    open var encodeAudio : Bool = true
+    public var encodeAudio : Bool = true
     /// Request deinterlace of input video (depends on decoder feature)
-    open var encodeDeinterlace : Bool = true
+    public var encodeDeinterlace : Bool = true
     /// Choose ProRes or H.264 for VideoTranscode
-    open var encodeProRes : Bool = true
+    public var encodeProRes : Bool = true
     
     /// VideoStyle for encodeVideo==true; use resetVideoStyle() to set.
     private (set) public var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
@@ -129,34 +129,34 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     private (set) public var clapVOffset : Int = 0
     
     /// Video resampling support
-    open var sampleDurationVideo : CMTime? = nil
+    public var sampleDurationVideo : CMTime? = nil
     /// Video track timeScale like 30000, 50000, 60000 (per sec)
-    open var sampleTimescaleVideo : CMTimeScale = 0
+    public var sampleTimescaleVideo : CMTimeScale = 0
     /// TimeCode track support
-    open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
+    public var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
     
     /// Callback support to verify/modify for video compression setting
-    open var updateVideoSettings : ((inout [String:Any]) -> Void)? = nil
+    public var updateVideoSettings : ((inout [String:Any]) -> Void)? = nil
     /// Callback support to verify/modify for audio compression setting
-    open var updateAudioSettings : ((inout [String:Any]) -> Void)? = nil
+    public var updateAudioSettings : ((inout [String:Any]) -> Void)? = nil
     
     /// ProRes VideoEncoder. Default is AVVideoCodecType.proRes422.
-    open var proresEncoderType : AVVideoCodecType = .proRes422
+    public var proresEncoderType : AVVideoCodecType = .proRes422
     /// VideoEncoder. Default is AVVideoCodecType.h264. Use updateVideoSettings() to modify detailed parameters.
-    open var videoEncoderType : AVVideoCodecType = .h264
+    public var videoEncoderType : AVVideoCodecType = .h264
     /// VideoEncoder profile. Default is AVVideoProfileLevelH264MainAutoLevel.
-    open var videoEncoderProfile : String = AVVideoProfileLevelH264MainAutoLevel
+    public var videoEncoderProfile : String = AVVideoProfileLevelH264MainAutoLevel
     /// VideoEncoder bitRate. Default is H264ProfileLevel.MP_40.maxRate.
-    open var videoEncoderBitRate : Int = H264ProfileLevel.MP_40.maxRate
+    public var videoEncoderBitRate : Int = H264ProfileLevel.MP_40.maxRate
     /// VideoEncoder key frame interval limit in seconds. Set 0.0 to make key frame only stream.
-    open var maxKeyFrameIntervalSeconds : Double = 3.0
+    public var maxKeyFrameIntervalSeconds : Double = 3.0
     
     /// AudioEncoder. Default is kAudioFormatMPEG4AAC. Use updateAudioSettings() to modify detailed parameters.
-    open var audioEncodeType : AudioFormatID = kAudioFormatMPEG4AAC
+    public var audioEncodeType : AudioFormatID = kAudioFormatMPEG4AAC
     /// AudioEncoder bitRate. Default is 256Kbps.
-    open var audioEncoderBitRate : Int = 256*1000
+    public var audioEncoderBitRate : Int = 256*1000
     /// AudioEncoder bitRate Strategy. Default is AVAudioBitRateStrategy_Constant.
-    open var audioEncoderStrategy : String = AVAudioBitRateStrategy_Constant
+    public var audioEncoderStrategy : String = AVAudioBitRateStrategy_Constant
     
     /* ======================================================================================== */
     // MARK: - internal variables - session
@@ -225,7 +225,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Verify if capture session is ready (ready to capture)
     /// - Returns: true if ready
-    open func isReady() -> Bool {
+    public func isReady() -> Bool {
         if let captureSession = captureSession {
             return captureSession.isRunning
         }
@@ -234,7 +234,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Open capture session using default video/audio devices
     /// - Returns: true if no error
-    open func openSession() -> Bool {
+    public func openSession() -> Bool {
         return openSessionForUniqueID(muxed: nil, video: nil, audio: nil)
     }
     
@@ -245,7 +245,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     ///   - videoID: video device uniqueID
     ///   - audioID: audio device uniqueID
     /// - Returns: true if no error
-    open func openSessionForUniqueID(muxed muxedID:String?,
+    public func openSessionForUniqueID(muxed muxedID:String?,
                                      video videoID:String?,
                                      audio audioID:String?) -> Bool {
         // Close current session first
@@ -273,7 +273,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     /// Close capture session completely
-    open func closeSession() {
+    public func closeSession() {
         // Stop recording session
         if isRecording() {
             stopRecording()
@@ -352,7 +352,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Toggle video preview connection
     /// - Parameter state: Enabled/Disabled state
-    open func setVideoPreviewConnection(enabled state: Bool) {
+    public func setVideoPreviewConnection(enabled state: Bool) {
         // NOTE: This func seems heavy operation for previewVideo - previewAudio could got stuttering
         if let previewVideoLayer = previewVideoLayer {
             let previewVideoConnection = previewVideoLayer.connection
@@ -370,13 +370,13 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Verify if recording is running
     /// - Returns: true if recording, false if not
-    open func isRecording() -> Bool {
+    public func isRecording() -> Bool {
         return isWriting
     }
     
     /// Start recording on current capture session
     /// - Parameter url: file URL to write movie
-    open func startRecording(to url: URL) {
+    public func startRecording(to url: URL) {
         // check if session is running
         if isReady() == false {
             return
@@ -423,7 +423,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     /// Stop recording on current capture session
-    open func stopRecording() {
+    public func stopRecording() {
         // check if session is running
         if isReady() == false {
             return
@@ -451,7 +451,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     
     /// Regenerate video compression settings using new VideoStyle.
     /// - Parameter newStyle: new VideoStyle
-    open func resetVideoStyle(_ newStyle:VideoStyle) {
+    public func resetVideoStyle(_ newStyle:VideoStyle) {
         resetVideoStyle(newStyle, hOffset:0, vOffset:0)
     }
     
@@ -461,7 +461,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     ///   - newStyle: new VideoStyle
     ///   - newHOffset: new clapHOffset (clean aperture offset H)
     ///   - newVOffset: new clapVOffset (clean aperture offset V)
-    open func resetVideoStyle(_ newStyle:VideoStyle, hOffset newHOffset:Int, vOffset newVOffset:Int) {
+    public func resetVideoStyle(_ newStyle:VideoStyle, hOffset newHOffset:Int, vOffset newVOffset:Int) {
         videoStyle = newStyle
         clapHOffset = newHOffset
         clapVOffset = newVOffset
@@ -470,7 +470,7 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     }
     
     /// Regenerate compression settins.
-    open func resetCompressionSettings() {
+    public func resetCompressionSettings() {
         if isRecording() == false {
             // clear autogenerated video/audio compression settings
             videoDeviceCompressedFormat = [:]
