@@ -140,9 +140,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var proresEncoderType : AVVideoCodecType = .proRes422
     /// VideoEncoder. Default is AVVideoCodecType.h264. Use updateVideoSettings() to modify detailed parameters.
     open var videoEncoderType : AVVideoCodecType = .h264
-    /// VideoEncoder profile. Default is AVVideoProfileLevelH264MainAutoLevel. NOTE: AVVideoCodecType.h264 only.
+    /// VideoEncoder profile. Default is AVVideoProfileLevelH264MainAutoLevel.
     open var videoEncoderProfile : String = AVVideoProfileLevelH264MainAutoLevel
-    /// VideoEncoder bitRate. Default is H264ProfileLevel.MP_40.maxRate. NOTE: AVVideoCodecType.h264 only.
+    /// VideoEncoder bitRate. Default is H264ProfileLevel.MP_40.maxRate.
     open var videoEncoderBitRate : Int = H264ProfileLevel.MP_40.maxRate
     /// VideoEncoder key frame interval limit in seconds. Set 0.0 to make key frame only stream.
     open var maxKeyFrameIntervalSeconds : Double = 3.0

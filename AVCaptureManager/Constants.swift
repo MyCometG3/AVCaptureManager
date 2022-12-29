@@ -22,18 +22,81 @@ public enum H264ProfileLevel {
     case MP_42 ; case HiP_42 ;
     case MP_50 ; case HiP_50 ;
     case MP_51 ; case HiP_51 ;
+    case MP_52 ; case HiP_52 ;
+    
+    case Hi10P_30 ; case Hi422P_30 ;
+    case Hi10P_31 ; case Hi422P_31 ;
+    case Hi10P_32 ; case Hi422P_32 ;
+    case Hi10P_40 ; case Hi422P_40 ;
+    case Hi10P_41 ; case Hi422P_41 ;
+    case Hi10P_42 ; case Hi422P_42 ;
+    case Hi10P_50 ; case Hi422P_50 ;
+    case Hi10P_51 ; case Hi422P_51 ;
+    case Hi10P_52 ; case Hi422P_52 ;
     
     // Maximum video bitrate per Profile_Level
     public var maxRate: Int {
         switch self {
-        case .MP_30: return  10000000 ; case .HiP_30: return  12500000;
-        case .MP_31: return  14000000 ; case .HiP_31: return  17500000;
-        case .MP_32: return  20000000 ; case .HiP_32: return  25000000;
-        case .MP_40: return  20000000 ; case .HiP_40: return  25000000;
-        case .MP_41: return  50000000 ; case .HiP_41: return  62500000;
-        case .MP_42: return  50000000 ; case .HiP_42: return  62500000;
-        case .MP_50: return 135000000 ; case .HiP_50: return 168750000;
-        case .MP_51: return 240000000 ; case .HiP_51: return 300000000;
+        case .MP_30: return  10_000_000 ; case .HiP_30: return  12_500_000;
+        case .MP_31: return  14_000_000 ; case .HiP_31: return  17_500_000;
+        case .MP_32: return  20_000_000 ; case .HiP_32: return  25_000_000;
+        case .MP_40: return  20_000_000 ; case .HiP_40: return  25_000_000;
+        case .MP_41: return  50_000_000 ; case .HiP_41: return  62_500_000;
+        case .MP_42: return  50_000_000 ; case .HiP_42: return  62_500_000;
+        case .MP_50: return 135_000_000 ; case .HiP_50: return 168_750_000;
+        case .MP_51: return 240_000_000 ; case .HiP_51: return 300_000_000;
+        case .MP_52: return 240_000_000 ; case .HiP_52: return 300_000_000;
+        
+        case .Hi10P_30: return  30_000_000; case .Hi422P_30: return  40_000_000;
+        case .Hi10P_31: return  42_000_000; case .Hi422P_31: return  56_000_000;
+        case .Hi10P_32: return  60_000_000; case .Hi422P_32: return  80_000_000;
+        case .Hi10P_40: return  60_000_000; case .Hi422P_40: return  80_000_000;
+        case .Hi10P_41: return 150_000_000; case .Hi422P_41: return 200_000_000;
+        case .Hi10P_42: return 150_000_000; case .Hi422P_42: return 200_000_000;
+        case .Hi10P_50: return 405_000_000; case .Hi422P_50: return 540_000_000;
+        case .Hi10P_51: return 720_000_000; case .Hi422P_51: return 960_000_000;
+        case .Hi10P_52: return 720_000_000; case .Hi422P_52: return 960_000_000;
+        }
+    }
+}
+
+/// Define HEVC profile and level with Tiers
+public enum HEVCProfileLevel {
+    // For HEVC encoder
+    case MP_30 ;
+    case MP_31 ;
+    case MP_40 ; case MP_40_HT ;
+    case MP_41 ; case MP_41_HT ;
+    case MP_50 ; case MP_50_HT ;
+    case MP_51 ; case MP_51_HT ;
+    case MP_52 ; case MP_52_HT ;
+    
+    case MP42210_30 ;
+    case MP42210_31 ;
+    case MP42210_40 ; case MP42210_40_HT ;
+    case MP42210_41 ; case MP42210_41_HT ;
+    case MP42210_50 ; case MP42210_50_HT ;
+    case MP42210_51 ; case MP42210_51_HT ;
+    case MP42210_52 ; case MP42210_52_HT ;
+    
+    // Maximum video bitrate per Profile_level (Main and Main10; Chroma sampling 4:2:0)
+    public var maxRate: Int {
+        switch self {
+        case .MP_30: return  6_000_000 ;
+        case .MP_31: return 10_000_000 ;
+        case .MP_40: return 12_000_000 ; case .MP_40_HT: return  30_000_000 ;
+        case .MP_41: return 20_000_000 ; case .MP_41_HT: return  50_000_000 ;
+        case .MP_50: return 25_000_000 ; case .MP_50_HT: return 100_000_000 ;
+        case .MP_51: return 40_000_000 ; case .MP_51_HT: return 160_000_000 ;
+        case .MP_52: return 60_000_000 ; case .MP_52_HT: return 240_000_000 ;
+        
+        case .MP42210_30: return  9_000_000 ;
+        case .MP42210_31: return 15_000_000 ;
+        case .MP42210_40: return 18_000_000 ; case .MP42210_40_HT: return  45_000_000 ;
+        case .MP42210_41: return 30_000_000 ; case .MP42210_41_HT: return  75_000_000 ;
+        case .MP42210_50: return 37_500_000 ; case .MP42210_50_HT: return 150_000_000 ;
+        case .MP42210_51: return 60_000_000 ; case .MP42210_51_HT: return 240_000_000 ;
+        case .MP42210_52: return 90_000_000 ; case .MP42210_52_HT: return 360_000_000 ;
         }
     }
 }
