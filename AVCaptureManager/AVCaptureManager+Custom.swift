@@ -450,7 +450,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         // Check if user want to customize settings
         if let updateVideoSettings = updateVideoSettings {
             // Call optional updateVideoSettings block
-            videoOutputSettings = updateVideoSettings(videoOutputSettings)
+            updateVideoSettings(&videoOutputSettings)
         }
         assert(videoOutputSettings.count > 0)
         
@@ -528,7 +528,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
         // Check if user want to customize settings
         if let updateAudioSettings = updateAudioSettings {
             // Call optional updateAudioSettings block
-            audioOutputSettings = updateAudioSettings(audioOutputSettings)
+            updateAudioSettings(&audioOutputSettings)
         }
         
         return audioOutputSettings

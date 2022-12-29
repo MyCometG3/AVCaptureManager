@@ -136,9 +136,9 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
     
     /// Callback support to verify/modify for video compression setting
-    open var updateVideoSettings : (([String:Any]) -> [String:Any])? = nil
+    open var updateVideoSettings : ((inout [String:Any]) -> Void)? = nil
     /// Callback support to verify/modify for audio compression setting
-    open var updateAudioSettings : (([String:Any]) -> [String:Any])? = nil
+    open var updateAudioSettings : ((inout [String:Any]) -> Void)? = nil
     
     /// ProRes VideoEncoder. Default is AVVideoCodecType.proRes422.
     open var proresEncoderType : AVVideoCodecType = .proRes422
