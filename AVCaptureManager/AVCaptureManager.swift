@@ -99,6 +99,10 @@ open class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     open var debugDecodeAudio : Bool = true
     /// Debug support - dump video encoder supported properties
     open var debugDumpSupportedPropertiesVideo : Bool = false
+    /// Debug support - Adjust settings for Video
+    open var debugAdjustSettingsVideo : Bool = true
+    /// Debug support - Adjust settings for Audio
+    open var debugAdjustSettingsAudio : Bool = true
     
     /// Decompressed pixel format; either 8bit or 10bit, 422 or 444 is recommended. Default is kCMPixelFormat_422YpCbCr8.
     open var pixelFormatType : CMPixelFormatType = kCMPixelFormat_422YpCbCr8

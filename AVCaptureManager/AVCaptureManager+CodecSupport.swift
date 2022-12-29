@@ -174,4 +174,125 @@ extension AVCaptureManager {
         return (printable ? CChar(c) : CChar(placeholder))
     }
     
+    //
+    internal func adjustCompressionPropertiesH264(_ compressionProperties:inout [String:Any]) {
+        let bitRate = compressionProperties[AVVideoAverageBitRateKey] as? Int
+        let profile = compressionProperties[AVVideoProfileLevelKey] as? CFTypeRef
+        
+        if let profile = profile, let bitRate = bitRate {
+            let profile = profile as! CFString
+            var vcl = bitRate
+            
+            switch profile {
+            case kVTProfileLevel_H264_High_AutoLevel:   vcl = min(vcl, H264ProfileLevel.HiP_52.maxRate)
+            case kVTProfileLevel_H264_High_5_2:         vcl = min(vcl, H264ProfileLevel.HiP_52.maxRate)
+            case kVTProfileLevel_H264_High_5_1:         vcl = min(vcl, H264ProfileLevel.HiP_51.maxRate)
+            case kVTProfileLevel_H264_High_5_0:         vcl = min(vcl, H264ProfileLevel.HiP_50.maxRate)
+            case kVTProfileLevel_H264_High_4_2:         vcl = min(vcl, H264ProfileLevel.HiP_42.maxRate)
+            case kVTProfileLevel_H264_High_4_1:         vcl = min(vcl, H264ProfileLevel.HiP_41.maxRate)
+            case kVTProfileLevel_H264_High_4_0:         vcl = min(vcl, H264ProfileLevel.HiP_40.maxRate)
+            case kVTProfileLevel_H264_High_3_2:         vcl = min(vcl, H264ProfileLevel.HiP_32.maxRate)
+            case kVTProfileLevel_H264_High_3_1:         vcl = min(vcl, H264ProfileLevel.HiP_31.maxRate)
+            case kVTProfileLevel_H264_High_3_0:         vcl = min(vcl, H264ProfileLevel.HiP_30.maxRate)
+                
+            case kVTProfileLevel_H264_Extended_AutoLevel: vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_H264_Extended_5_0:     vcl = min(vcl, H264ProfileLevel.MP_50.maxRate)
+                
+            case kVTProfileLevel_H264_Main_AutoLevel:   vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_H264_Main_5_2:         vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_H264_Main_5_1:         vcl = min(vcl, H264ProfileLevel.MP_51.maxRate)
+            case kVTProfileLevel_H264_Main_5_0:         vcl = min(vcl, H264ProfileLevel.MP_50.maxRate)
+            case kVTProfileLevel_H264_Main_4_2:         vcl = min(vcl, H264ProfileLevel.MP_42.maxRate)
+            case kVTProfileLevel_H264_Main_4_1:         vcl = min(vcl, H264ProfileLevel.MP_41.maxRate)
+            case kVTProfileLevel_H264_Main_4_0:         vcl = min(vcl, H264ProfileLevel.MP_40.maxRate)
+            case kVTProfileLevel_H264_Main_3_2:         vcl = min(vcl, H264ProfileLevel.MP_32.maxRate)
+            case kVTProfileLevel_H264_Main_3_1:         vcl = min(vcl, H264ProfileLevel.MP_31.maxRate)
+            case kVTProfileLevel_H264_Main_3_0:         vcl = min(vcl, H264ProfileLevel.MP_30.maxRate)
+                
+            case kVTProfileLevel_H264_Baseline_AutoLevel: vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_H264_Baseline_5_2:     vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_H264_Baseline_5_1:     vcl = min(vcl, H264ProfileLevel.MP_51.maxRate)
+            case kVTProfileLevel_H264_Baseline_5_0:     vcl = min(vcl, H264ProfileLevel.MP_50.maxRate)
+            case kVTProfileLevel_H264_Baseline_4_2:     vcl = min(vcl, H264ProfileLevel.MP_42.maxRate)
+            case kVTProfileLevel_H264_Baseline_4_1:     vcl = min(vcl, H264ProfileLevel.MP_41.maxRate)
+            case kVTProfileLevel_H264_Baseline_4_0:     vcl = min(vcl, H264ProfileLevel.MP_40.maxRate)
+            case kVTProfileLevel_H264_Baseline_3_2:     vcl = min(vcl, H264ProfileLevel.MP_32.maxRate)
+            case kVTProfileLevel_H264_Baseline_3_1:     vcl = min(vcl, H264ProfileLevel.MP_31.maxRate)
+            case kVTProfileLevel_H264_Baseline_3_0:     vcl = min(vcl, H264ProfileLevel.MP_30.maxRate)
+                
+            default:
+                if #available(macOS 12.0, *), profile == kVTProfileLevel_H264_ConstrainedBaseline_AutoLevel {
+                    vcl = min(vcl, H264ProfileLevel.MP_52.maxRate)
+                } else
+                if #available(macOS 12.0, *), profile == kVTProfileLevel_H264_ConstrainedHigh_AutoLevel {
+                    vcl = min(vcl, H264ProfileLevel.HiP_52.maxRate)
+                } else {
+                    // unsupported profile - Force MP_40 instead
+                    compressionProperties[AVVideoProfileLevelKey] = kVTProfileLevel_H264_Main_4_0
+                    vcl = H264ProfileLevel.MP_40.maxRate
+                }
+            }
+            compressionProperties[AVVideoAverageBitRateKey] = vcl
+        }
+    }
+    
+    //
+    internal func adjustCompressionPropertiesHEVC(_ compressionProperties:inout [String:Any]) {
+        let bitRate = compressionProperties[AVVideoAverageBitRateKey] as? Int
+        let profile = compressionProperties[AVVideoProfileLevelKey] as? CFTypeRef
+        
+        if let profile = profile as CFTypeRef?, let bitRate = bitRate {
+            let profile = profile as! CFString
+            var vcl = bitRate
+            
+            switch profile {
+            case kVTProfileLevel_HEVC_Main10_AutoLevel: vcl = min(vcl, HEVCProfileLevel.MP_52.maxRate)
+            case kVTProfileLevel_HEVC_Main_AutoLevel:   vcl = min(vcl, HEVCProfileLevel.MP_52.maxRate)
+            
+            default:
+                if #available(macOS 12.3, *), profile == kVTProfileLevel_HEVC_Main42210_AutoLevel {
+                    vcl = min(vcl, HEVCProfileLevel.MP42210_52.maxRate)
+                } else {
+                    // unsupported profile - Force Main instead
+                    compressionProperties[AVVideoProfileLevelKey] = kVTProfileLevel_HEVC_Main_AutoLevel
+                    vcl = HEVCProfileLevel.MP_52.maxRate
+                }
+            }
+            compressionProperties[AVVideoAverageBitRateKey] = vcl
+        }
+    }
+    
+    //
+    internal func adjustSettingsAudio(_ audioFormat:AudioFormatID, _ audioOutputSettings:inout [String:Any]) {
+        if audioFormat == kAudioFormatAppleLossless {
+            let srcBitDepth = (audioDeviceDecompressedFormat[AVLinearPCMBitDepthKey] as! UInt32)
+            audioOutputSettings[AVEncoderBitDepthHintKey] = srcBitDepth
+            
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+        }
+        if audioFormat == kAudioFormatFLAC {
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
+            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+        }
+        if audioFormat == kAudioFormatMPEG4AAC {
+            var bitRateAAC = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAAC = min(max(bitRateAAC,64000),320000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAAC
+        }
+        if audioFormat == kAudioFormatMPEG4AAC_HE {
+            var bitRateAACHE = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAACHE = min(max(bitRateAACHE,32000),80000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHE
+        }
+        if audioFormat == kAudioFormatMPEG4AAC_HE_V2 {
+            var bitRateAACHEv2 = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+            bitRateAACHEv2 = min(max(bitRateAACHEv2,20000),48000)
+            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHEv2
+        }
+        if audioFormat == kAudioFormatOpus {
+            // AFAIK, no parameter restriction
+        }
+    }
+    
 }
