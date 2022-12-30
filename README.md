@@ -5,13 +5,16 @@ Simple but powerful wrapper for AVCapture.framework, etc.
 - __Requirement__: MacOS X 10.14.6 or later.
 - __Capture Device__: Any AV devices compatible with AVCapture.framework,
 including A/V mixed connection like DV.
-- __Restriction__: Video-only or Audio-only recording are not supported.
+- __UVC/UAC Devices__: Generall UVC/UAC devices are supported.
+- __Restriction__: Only QuickTime movie (.mov) is supported.
+- __Restriction__: Video-only or Audio-only source may not work.
+- __Restriction__: Progressive/Frame based video is supported but Field based video is not supported.
 - __Dependency__: AVFoundation/VideoToolbox/CoreMediaIO
 - __Architecture__: Universal binary (x86_64 + arm64)
 
-#### Basic Usage
+#### Basic Usage:
 
-###### 1. Instance AVCaptureManager
+###### 1. Instanciate AVCaptureManager
 
     import Cocoa
     import AVFoundation
@@ -21,83 +24,90 @@ including A/V mixed connection like DV.
 
 ###### 2. Set parameters for session then start session
 
-    // Set before openSession() or openSessionForUniqueID()
-    open var useMuxed : Bool = false
-    open var usePreset : Bool = false
-    open var exportPreset : AVCaptureSession.Preset = .high
+    // Set session parameters
+    public var useMuxed : Bool = false
+    public var usePreset : Bool = false
+    public var exportPreset : AVCaptureSession.Preset = .high
 
-    // Start session
-    open func openSession() -> Bool {...}
-    open func openSessionForUniqueID(muxed muxedID:String?,
+    // Start session using one of followings
+    public func openSession() -> Bool {...}
+    public func openSessionForUniqueID(muxed muxedID:String?,
                                      video videoID:String?,
                                      audio audioID:String?) -> Bool {...}
     // Check readiness
-    open func isReady() -> Bool {...}
+    public func isReady() -> Bool {...}
 
-    // Wait Source encoded pixel size is ready to proceed
-    open var videoSize : CGSize? = nil
+    // Wait till Source encoded pixel size is detected
+    public var videoSize : CGSize? = nil
 
 ###### 3. Set parameters for recording then start recording
 
-    // Set before startRecording(to:) - when usePreset==false
-    open var encodeVideo : Bool = true
-    open var encodeAudio : Bool = true
-    open var encodeDeinterlace : Bool = true
-    open var encodeProRes : Bool = true
-    private (set) public var videoStyle : VideoStyle = .SD_720_480_16_9 // SD - DV-NTSC Wide screen
-    private (set) public var clapHOffset : Int = 0
-    private (set) public var clapVOffset : Int = 0
-    open var sampleDurationVideo : CMTime? = nil
-    open var sampleTimescaleVideo : CMTimeScale = 0
-    open var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
+    // Set some parameters before start recording - when usePreset==false
+    public var encodeVideo : Bool = true
+    public var encodeAudio : Bool = true
+    public var encodeDeinterlace : Bool = true
+    public var encodeProRes : Bool = true
+    public var sampleDurationVideo : CMTime? = nil
+    public var sampleTimescaleVideo : CMTimeScale = 0
+    public var timeCodeFormatType: CMTimeCodeFormatType? = nil // Only 'tmcd' or 'tc64' are supported
 
-    // Apply new recording parameters using one of followings:
-    open func resetVideoStyle(_ newStyle:VideoStyle) {...}
-    open func resetVideoStyle(_ newStyle:VideoStyle, hOffset newHOffset:Int, vOffset newVOffset:Int) {...}
-    open func resetCompressionSettings() {
+    // Re-generate new recording parameters using one of followings
+    public func resetVideoStyle(_ newStyle:VideoStyle) {...}
+    public func resetVideoStyle(_ newStyle:VideoStyle, hOffset newHOffset:Int, vOffset newVOffset:Int) {...}
+    public func resetCompressionSettings() {...}
 
     // Specify URL to record
-    open func startRecording(to url: URL) {...}
+    public func startRecording(to url: URL) {...}
 
     // Check if recording is running
-    open func isRecording() -> Bool {...}
+    public func isRecording() -> Bool {...}
 
 ###### 4. Stop recording
 
     // Finish writing
-    open func stopRecording() {...}
-
-    // Query recording duration
-    open var duration : Float64 {...}
+    public func stopRecording() {...}
 
 ###### 5. Close session
 
     // Shutdown session
-    open func closeSession() {...}
+    public func closeSession() {...}
 
 ###### 6. Dealloc AVCaptureManager
 
     manager = nil
 
-#### Query Capture Devices (r/o)
+###### Check if recording detects any error
+
+    internal (set) public var lastAVAssetWriterStatus:String? = nil
+    internal (set) public var lastAVAssetWriterError:String? = nil
+
+###### Query Capture Devices (r/o)
 
     // Device's uniqueID for current session
-    open var currentDeviceIDVideo : String? {...}
-    open var currentDeviceIDAudio : String? {...}
+    public var currentDeviceIDVideo : String? {...}
+    public var currentDeviceIDAudio : String? {...}
 
     // All connected devices info
-    open func devicesMuxed() -> [Any]! {...}
-    open func devicesVideo() -> [Any]! {...}
-    open func devicesAudio() -> [Any]! {...}
-    open func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {..}
+    public func devicesMuxed() -> [Any]! {...}
+    public func devicesVideo() -> [Any]! {...}
+    public func devicesAudio() -> [Any]! {...}
+    public func deviceInfoForUniqueID(_ uniqueID: String) -> [String:Any]? {..}
 
-#### Restriction
+#### NOTE:
 
-You have to restart session always in the following scenario:
-- To change b/w muxed input and separated A-V inputs
-- To change devices for inputs
+This framework produces QuickTime movie (.mov) only.
 
-#### Development environment
+You must restart session in the following scenario:
+- To toggle "using AVAssetWriter preset" and "using custom compression"
+- To switch between "muxed device" and "separated AV devices"
+- To change devices for inputs (e.g. internal mic to external audio I/F)
+
+QuickTime movie capture will create tracks as following:
+- Muxed capture works with combination of followings.
+- Video capture works with video track of 1)Device Native or 2)Encoded format.
+- Audio capture works with audio track of 1)Decompressed or 2)Encoded format.
+
+#### Development environment:
 - macOS 12.6.2 Monterey
 - Xcode 14.2
 - Swift 5.7.2
