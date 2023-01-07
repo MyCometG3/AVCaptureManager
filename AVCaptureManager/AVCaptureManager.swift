@@ -89,8 +89,10 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     /// Preset for capture session
     public var exportPreset : AVCaptureSession.Preset = .high
     
-    /// Debug support - notification
+    /// Debug support - dump notification(s)
     public var debugObserver : Bool = false
+    /// Debug support - callback support for notifications (AVCaptureSession, AVCaptureDevice). Requires debugObserver==true.
+    public var debugNotification : ((Notification) -> Void)? = nil
     /// Debug support - trim movie
     public var debugTrimMovie : Bool = false
     /// Debug support - decode video; false allows device native format. Default is false.
@@ -920,26 +922,43 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         guard debugObserver else { return }
         
         print("registerObserver()")
-        if let captureSession = captureSession {
-            let center = NotificationCenter.default
-            let queue = OperationQueue.main
-            let handler:(Notification) -> Void = { (notification) in
-                let log = notification.debugDescription
-                NSLog("Notification: %@", log)
-            }
+        let center = NotificationCenter.default
+        let queue = OperationQueue.main
+        let handler:(Notification) -> Void = { [unowned self] (notification) in
+            let log = notification.debugDescription
+            NSLog("Notification: %@", log)
             
+            if let delegate = self.debugNotification {
+                delegate(notification)
+            }
+        }
+        observers = []
+        
+        // Notification for AVCaptureSession
+        if let captureSession = captureSession {
             let notificationNames:[Notification.Name] = [
                 .AVCaptureSessionRuntimeError,
                 .AVCaptureSessionDidStopRunning,
                 .AVCaptureSessionDidStartRunning,
                 .AVCaptureSessionWasInterrupted,
                 .AVCaptureSessionInterruptionEnded,
-                .AVCaptureDeviceWasConnected,
-                .AVCaptureDeviceWasDisconnected,
             ]
-            observers = []
             notificationNames.forEach {
                 let observer = center.addObserver(forName: $0, object: captureSession,
+                                                  queue: queue, using: handler)
+                observers.append(observer)
+            }
+        }
+        
+        // Notification for AVCaptureDevice
+        do {
+            let notificationNames:[Notification.Name] = [
+                .AVCaptureDeviceWasConnected,
+                .AVCaptureDeviceWasDisconnected,
+                .AVCaptureInputPortFormatDescriptionDidChange,
+            ]
+            notificationNames.forEach {
+                let observer = center.addObserver(forName: $0, object: nil,
                                                   queue: queue, using: handler)
                 observers.append(observer)
             }
