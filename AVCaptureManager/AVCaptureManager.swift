@@ -561,8 +561,7 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             } else {
                 // Using AVAssetWriter
                 // NOTE: For video, we use device native format for extra control
-                outputReady = (addVideoDataOutput(decode: debugDecodeVideo) &&
-                               addAudioDataOutput(decode: debugDecodeAudio))
+                outputReady = addCaptureDataOutput()
             }
             
             /* ============================================ */
@@ -821,6 +820,33 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         }
         
         print("ERROR: Failed to addCaptureDeviceInput().")
+        return false
+    }
+    
+    /// Attach Audio/Video data output to capture session
+    /// - Returns: true if no error
+    private func addCaptureDataOutput() -> Bool {
+        if let captureSession = captureSession {
+            //
+            let muxedSource = (useMuxed && captureDeviceVideo != nil)
+            if captureDeviceAudio != nil || muxedSource {
+                if addAudioDataOutput(decode: debugDecodeAudio) == false {
+                    print("ERROR: Failed to addAudioDataOutput().")
+                    return false
+                }
+            }
+            if captureDeviceVideo != nil {
+                if addVideoDataOutput(decode: debugDecodeVideo) == false {
+                    print("ERROR: Failed to addVideoDataOutput().")
+                    return false
+                }
+            }
+            if captureSession.outputs.count > 0 {
+                return true
+            }
+        }
+        
+        print("ERROR: Failed to addCaptureDataOutput().")
         return false
     }
     

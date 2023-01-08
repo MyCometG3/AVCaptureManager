@@ -46,8 +46,6 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 }
             }
         }
-        
-        print("ERROR: Failed to addVideoDataOutput().")
         return false
     }
     
@@ -80,8 +78,6 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
                 }
             }
         }
-        
-        print("ERROR: Failed to addAudioDataOutput().")
         return false
     }
     
