@@ -24,7 +24,7 @@ extension AVCaptureManager {
     internal func createTimeCodeSampleBuffer(from srcSampleBuffer: CMSampleBuffer) -> CMSampleBuffer? {
         // Extract SMPTETime from source sample buffer
         guard let smpteTime = extractCVSMPTETime(from: srcSampleBuffer)
-            else { return nil }
+        else { return nil }
         
         // Check CMTimeCodeFormatType
         var sizes: Int = 0
@@ -61,7 +61,7 @@ extension AVCaptureManager {
         
         // Prepare Data Buffer for new SampleBuffer
         guard let dataBuffer = prepareTimeCodeDataBuffer(smpteTime, sizes, quanta, tcType)
-            else { return nil }
+        else { return nil }
         
         /* ============================================ */
         
@@ -120,7 +120,7 @@ extension AVCaptureManager {
     internal func extractCVSMPTETime(from sampleBuffer: CMSampleBuffer) -> CVSMPTETime? {
         /*
          NOTE: SMPTETime in CoreAudioBaseTypes.h == CVSMPTETime in CVBase.h
-
+         
          kCMIOSampleBufferAttachmentKey_CAAudioTimeStamp:
              = com.apple.cmio.buffer_attachment.audio.core_audio_audio_time_stamp
          kCMIOSampleBufferAttachmentKey_SMPTETime:
@@ -271,5 +271,5 @@ extension AVCaptureManager {
         
         return dataBuffer
     }
-
+    
 }

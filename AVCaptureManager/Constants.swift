@@ -46,7 +46,7 @@ public enum H264ProfileLevel {
         case .MP_50: return 135_000_000 ; case .HiP_50: return 168_750_000;
         case .MP_51: return 240_000_000 ; case .HiP_51: return 300_000_000;
         case .MP_52: return 240_000_000 ; case .HiP_52: return 300_000_000;
-        
+            
         case .Hi10P_30: return  30_000_000; case .Hi422P_30: return  40_000_000;
         case .Hi10P_31: return  42_000_000; case .Hi422P_31: return  56_000_000;
         case .Hi10P_32: return  60_000_000; case .Hi422P_32: return  80_000_000;
@@ -89,7 +89,7 @@ public enum HEVCProfileLevel {
         case .MP_50: return 25_000_000 ; case .MP_50_HT: return 100_000_000 ;
         case .MP_51: return 40_000_000 ; case .MP_51_HT: return 160_000_000 ;
         case .MP_52: return 60_000_000 ; case .MP_52_HT: return 240_000_000 ;
-        
+            
         case .MP42210_30: return  9_000_000 ;
         case .MP42210_31: return 15_000_000 ;
         case .MP42210_40: return 18_000_000 ; case .MP42210_40_HT: return  45_000_000 ;
@@ -125,9 +125,9 @@ public enum VideoStyle : String {
     case UHD4k_3840_2160_Full  = "UHD4k 3840:2160 Full"   // square pixel
     
     public func settings(
-            hOffset horizontalOffset: Int,
-            vOffset verticalOffset: Int
-        ) -> [String: Any] {
+        hOffset horizontalOffset: Int,
+        vOffset verticalOffset: Int
+    ) -> [String: Any] {
         
         // clap/pasp => Technical Note TN2162
         // Uncompressed Y´CbCr Video in QuickTime Files

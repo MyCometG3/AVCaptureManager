@@ -297,7 +297,7 @@ extension AVCaptureManager {
             switch profile {
             case kVTProfileLevel_HEVC_Main10_AutoLevel: vcl = min(vcl, HEVCProfileLevel.MP_52.maxRate)
             case kVTProfileLevel_HEVC_Main_AutoLevel:   vcl = min(vcl, HEVCProfileLevel.MP_52.maxRate)
-            
+                
             default:
                 if #available(macOS 12.3, *), profile == kVTProfileLevel_HEVC_Main42210_AutoLevel {
                     vcl = min(vcl, HEVCProfileLevel.MP42210_52.maxRate)

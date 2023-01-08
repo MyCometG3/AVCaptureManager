@@ -143,8 +143,8 @@ class VideoDecompressor : NSObject {
                 // Prepare parameters
                 let decodeFlags: VTDecodeFrameFlags = (
                     temporalProcessing
-                        ? [._EnableAsynchronousDecompression, ._EnableTemporalProcessing]
-                        : [._EnableAsynchronousDecompression])
+                    ? [._EnableAsynchronousDecompression, ._EnableTemporalProcessing]
+                    : [._EnableAsynchronousDecompression])
                 var infoFlagsOut: VTDecodeInfoFlags = VTDecodeInfoFlags(rawValue: 0)
                 
                 // Extract attachment from source SampleBuffer
@@ -268,7 +268,7 @@ class VideoDecompressor : NSObject {
             imageBuffer: CVImageBuffer?,
             presentationTimeStamp: CMTime,
             presentationDuration: CMTime
-            ) in
+        ) in
             
             // Check if CVImageBuffer is ready
             if status == noErr, let imageBuffer = imageBuffer {

@@ -789,7 +789,7 @@ extension AVCaptureManager : AVCaptureVideoDataOutputSampleBufferDelegate, AVCap
             } else {
                 // current < srcEnd < next
                 // Capture: update last sample with current source samplebuffer
-
+                
                 if resampleCaptured == nil {
                     var captured :CMSampleBuffer? = nil
                     let err = CMSampleBufferCreateCopy(allocator: kCFAllocatorDefault,

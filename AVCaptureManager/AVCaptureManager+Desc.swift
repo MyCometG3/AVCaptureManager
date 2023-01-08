@@ -173,23 +173,21 @@ extension AVCaptureManager {
             print("captureVideoDataOutput:")
             print(": videoSettings = \(String(describing: captureVideoDataOutput.videoSettings))")
             
-            #if true
-                // : availableCodecTypes = [avc1, jpeg]
-                let codecTypes = captureVideoDataOutput.availableVideoCodecTypes
-                print(": availableCodecTypes = \(codecTypes.debugDescription)") // String array
-                
-                // : availableVideoCVPixelFormatTypes = [846624121, 2037741171, 875704438, 875704422, 32, 1111970369]
-                let pixfmtTypes = captureVideoDataOutput.availableVideoCVPixelFormatTypes
-                print(": availableVideoCVPixelFormatTypes = \(pixfmtTypes.debugDescription) in UInt32 array") // UInt32 array
-                
-                // : availableVideoCVPixelFormatTypes = ["2vuy", "yuvs", "420v", "420f", "    ", "BGRA"]
-                var pixfmtTypesStr :[String] = []
-                for value in pixfmtTypes {
-                    let fourcc = fourCC(uint32: value.uint32Value)
-                    pixfmtTypesStr.append(fourcc)
-                }
-                print(": availableVideoCVPixelFormatTypes = \(pixfmtTypesStr) in FourCharCode Array")
-            #endif
+            // : availableCodecTypes = [avc1, jpeg]
+            let codecTypes = captureVideoDataOutput.availableVideoCodecTypes
+            print(": availableCodecTypes = \(codecTypes.debugDescription)") // String array
+            
+            // : availableVideoCVPixelFormatTypes = [846624121, 2037741171, 875704438, 875704422, 32, 1111970369]
+            let pixfmtTypes = captureVideoDataOutput.availableVideoCVPixelFormatTypes
+            print(": availableVideoCVPixelFormatTypes = \(pixfmtTypes.debugDescription) in UInt32 array") // UInt32 array
+            
+            // : availableVideoCVPixelFormatTypes = ["2vuy", "yuvs", "420v", "420f", "    ", "BGRA"]
+            var pixfmtTypesStr :[String] = []
+            for value in pixfmtTypes {
+                let fourcc = fourCC(uint32: value.uint32Value)
+                pixfmtTypesStr.append(fourcc)
+            }
+            print(": availableVideoCVPixelFormatTypes = \(pixfmtTypesStr) in FourCharCode Array")
             
             print("")
         } else {
@@ -307,18 +305,18 @@ extension AVCaptureManager {
     private func validateSampleDuration(_ duration:CMTime, format:AVCaptureDevice.Format) -> Bool {
         let rangeArray: [AVFrameRateRange] = format.videoSupportedFrameRateRanges
         for range in rangeArray {
-            #if false
-                /*
-                 * Some poor UVC device returns broken min/max FPSs, even if the input is in 59.94i.
-                 * e.g. <AVFrameRateRange: 0x6000026a2230 30.00 - 60.00 (1000000 / 30000030 - 1000000 / 60000240)>
-                 * => FPS(min,max) = (30.00003000,60.00024000),
-                 * It does NOT run in 30 fps. And also 29.970fps is out of range... sigh.
-                 */
-                let debug = String(format: "%.9f,(%.9f-%.9f):",
-                                   1.0/duration.seconds, range.minFrameRate, range.maxFrameRate)
-                let closed :(ClosedRange<CMTime>) = (range.minFrameDuration...range.maxFrameDuration)
-                print(debug, (closed.contains(duration) ? "true" : "false"))
-            #endif
+#if false
+            /*
+             * Some poor UVC device returns broken min/max FPSs, even if the input is in 59.94i.
+             * e.g. <AVFrameRateRange: 0x6000026a2230 30.00 - 60.00 (1000000 / 30000030 - 1000000 / 60000240)>
+             * => FPS(min,max) = (30.00003000,60.00024000),
+             * It does NOT run in 30 fps. And also 29.970fps is out of range... sigh.
+             */
+            let debug = String(format: "%.9f,(%.9f-%.9f):",
+                               1.0/duration.seconds, range.minFrameRate, range.maxFrameRate)
+            let closed :(ClosedRange<CMTime>) = (range.minFrameDuration...range.maxFrameDuration)
+            print(debug, (closed.contains(duration) ? "true" : "false"))
+#endif
             if (range.minFrameDuration...range.maxFrameDuration).contains(duration) {
                 return true
             }

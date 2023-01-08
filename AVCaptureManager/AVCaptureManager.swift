@@ -248,8 +248,8 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     ///   - audioID: audio device uniqueID
     /// - Returns: true if no error
     public func openSessionForUniqueID(muxed muxedID:String?,
-                                     video videoID:String?,
-                                     audio audioID:String?) -> Bool {
+                                       video videoID:String?,
+                                       audio audioID:String?) -> Bool {
         // Close current session first
         if isReady() {
             closeSession()
@@ -467,7 +467,7 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
         videoStyle = newStyle
         clapHOffset = newHOffset
         clapVOffset = newVOffset
-
+        
         resetCompressionSettings()
     }
     
@@ -489,9 +489,6 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     /// Prepare capture session
     /// - Returns: true if no error
     private func prepareSession() -> Bool {
-        var inputReady = false
-        var outputReady = false
-        
         // Verify readiness
         guard captureDeviceVideo == nil && captureDeviceAudio == nil && captureSession == nil
         else {
@@ -532,8 +529,10 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             print("ERROR: No AVCaptureDevice is ready.")
             return false
         }
-                
+        
         // Init AVCaptureSession
+        var inputReady = false
+        var outputReady = false
         captureSession = AVCaptureSession()
         if let captureSession = captureSession {
             registerObserver()
@@ -626,12 +625,12 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     /// Prepare decompressed settings for Video Input
     /// - Returns: true if no error
     private func chooseVideoDeviceFormat() -> Bool {
-        // For video; Choose larger format, and fixed sample duration if requested
+        // For video; Choose larger format
         if let captureDeviceVideo = captureDeviceVideo {
             var bestPixels: Int32 = 0
             var bestFormat: AVCaptureDevice.Format? = nil
             
-            let deviceFormats = captureDeviceVideo.formats 
+            let deviceFormats = captureDeviceVideo.formats
             for format in deviceFormats {
                 let formatDescription = format.formatDescription
                 let dimmensions = CMVideoFormatDescriptionGetDimensions(formatDescription)
@@ -702,7 +701,7 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             let sampleRateLower = Double(48000>>3) //   6 kHz
             let sampleRateRange:ClosedRange<Double> = sampleRateLower...sampleRateUpper
             
-            let deviceFormats = captureDeviceAudio.formats 
+            let deviceFormats = captureDeviceAudio.formats
             for deviceFormat in deviceFormats {
                 // Get AudioStreamBasicDescription,  and AVAudioFormat/AudioChannelLayout
                 var avaf: AVAudioFormat? = nil
@@ -762,13 +761,13 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
                 }
                 
                 // Specify SameRate, SignedInteger, interleaved format when decompressed
-                audioDeviceDecompressedFormat = [AVFormatIDKey: kAudioFormatLinearPCM,          // UInt32
-                                                 AVSampleRateKey: bestRate,                     // Double
-                                                 AVNumberOfChannelsKey: bestChannelCount,       // UInt32
-                                                 AVLinearPCMBitDepthKey: bestBitsPerChannel,    // UInt32
-                                                 AVLinearPCMIsBigEndianKey: false,              // Bool
-                                                 AVLinearPCMIsFloatKey: false,                  // Bool
-                                                 AVLinearPCMIsNonInterleaved: false]            // Bool
+                audioDeviceDecompressedFormat = [AVFormatIDKey: kAudioFormatLinearPCM,  // UInt32
+                                               AVSampleRateKey: bestRate,               // Double
+                                         AVNumberOfChannelsKey: bestChannelCount,       // UInt32
+                                        AVLinearPCMBitDepthKey: bestBitsPerChannel,     // UInt32
+                                     AVLinearPCMIsBigEndianKey: false,                  // Bool
+                                         AVLinearPCMIsFloatKey: false,                  // Bool
+                                   AVLinearPCMIsNonInterleaved: false]                  // Bool
                 if let bestChannelLayoutData = bestChannelLayoutData {
                     audioDeviceDecompressedFormat[AVChannelLayoutKey] = bestChannelLayoutData   // NSData
                 }
@@ -922,8 +921,8 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     ///   - fileURL: output fileURL
     ///   - connections: AVCaptureConnection
     open func fileOutput(_ captureOutput: AVCaptureFileOutput,
-                      didStartRecordingTo fileURL: URL,
-                      from connections: [AVCaptureConnection]) {
+                         didStartRecordingTo fileURL: URL,
+                         from connections: [AVCaptureConnection]) {
         // print("NOTICE: Capture started.")
     }
     
@@ -934,8 +933,8 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
     ///   - connections: AVCaptureConnection
     ///   - error: Error result if available
     open func fileOutput(_ captureOutput: AVCaptureFileOutput,
-                      didFinishRecordingTo outputFileURL: URL,
-                      from connections: [AVCaptureConnection], error: Error?) {
+                         didFinishRecordingTo outputFileURL: URL,
+                         from connections: [AVCaptureConnection], error: Error?) {
         // print("NOTICE: Capture stopped.")
     }
     
@@ -1041,7 +1040,7 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             
             settings.removeValue(forKey: kCMFormatDescriptionExtension_PixelAspectRatio as String)
         }
-
+        
         // clap: Convert as AVVideoCleanApertureKey (Ref: AVVideoSettings.h)
         // NOTE: clap without offset is ignored
         let clapExt = settings[kCMFormatDescriptionExtension_CleanAperture as String]
@@ -1064,7 +1063,7 @@ public class AVCaptureManager : NSObject, AVCaptureFileOutputRecordingDelegate {
             
             settings.removeValue(forKey: kCMFormatDescriptionExtension_CleanAperture as String)
         }
-
+        
         // colr: Encapsulate as AVVideoColorPropertiesKey (Ref: AVVideoSettings.h)
         let colrMatrix = settings[kCMFormatDescriptionExtension_YCbCrMatrix as String]
         let colrTransfer = settings[kCMFormatDescriptionExtension_TransferFunction as String]

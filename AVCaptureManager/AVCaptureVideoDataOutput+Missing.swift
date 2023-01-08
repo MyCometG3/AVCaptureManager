@@ -12,7 +12,7 @@ import Foundation
 import AVFoundation
 
 extension AVCaptureVideoDataOutput {
-        
+    
     @nonobjc
     public var availableVideoCVPixelFormatTypes :[NSNumber] {
         return __availableVideoCVPixelFormatTypes
