@@ -85,4 +85,4 @@
 - TN2227 : Video Color Management in AV Foundation and QTKit
 (https://developer.apple.com/library/content/technotes/tn2227/_index.html)
 
-Copyright © 2016-2022年 MyCometG3. All rights reserved.
+Copyright © 2016-2023年 MyCometG3. All rights reserved.
