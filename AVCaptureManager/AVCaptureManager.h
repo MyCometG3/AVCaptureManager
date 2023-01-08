@@ -3,7 +3,7 @@
 //  AVCaptureManager
 //
 //  Created by Takashi Mochizuki on 2016/08/07.
-//  Copyright © 2016年 MyCometG3. All rights reserved.
+//  Copyright © 2016-2023 MyCometG3. All rights reserved.
 //
 /*
  Redistribution and use in source and binary forms, with or without
