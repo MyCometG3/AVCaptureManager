@@ -218,7 +218,7 @@ extension AVCaptureManager {
     }
     
     /* ======================================================================================== */
-    // MARK: - internal encoder specific support func
+    // MARK: - internal/private encoder specific support func
     /* ======================================================================================== */
     
     /// Adjust H264 Compression Properties
@@ -317,34 +317,92 @@ extension AVCaptureManager {
     ///   - audioOutputSettings: audioOutputSettings (inout)
     internal func adjustSettingsAudio(_ audioFormat:AudioFormatID, _ audioOutputSettings:inout [String:Any]) {
         if audioFormat == kAudioFormatAppleLossless {
-            let srcBitDepth = (audioDeviceDecompressedFormat[AVLinearPCMBitDepthKey] as! UInt32)
-            audioOutputSettings[AVEncoderBitDepthHintKey] = srcBitDepth
-            
-            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
-            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+            addBitDepthHint(&audioOutputSettings)
+            removeBitRate(&audioOutputSettings)
         }
         if audioFormat == kAudioFormatFLAC {
-            audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
-            audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+            removeBitRate(&audioOutputSettings)
         }
         if audioFormat == kAudioFormatMPEG4AAC {
-            var bitRateAAC = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
-            bitRateAAC = min(max(bitRateAAC,64000),320000)
-            audioOutputSettings[AVEncoderBitRateKey] = bitRateAAC
+            clampBitRate(&audioOutputSettings, 64000, 320000)
+            clampSampleRate(&audioOutputSettings, 8000, 48000)
         }
         if audioFormat == kAudioFormatMPEG4AAC_HE {
-            var bitRateAACHE = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
-            bitRateAACHE = min(max(bitRateAACHE,32000),80000)
-            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHE
+            clampBitRate(&audioOutputSettings, 32000, 80000)
+            clampSampleRate(&audioOutputSettings, 8000, 48000)
         }
         if audioFormat == kAudioFormatMPEG4AAC_HE_V2 {
-            var bitRateAACHEv2 = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
-            bitRateAACHEv2 = min(max(bitRateAACHEv2,20000),48000)
-            audioOutputSettings[AVEncoderBitRateKey] = bitRateAACHEv2
+            clampBitRate(&audioOutputSettings, 20000, 48000)
+            clampSampleRate(&audioOutputSettings, 8000, 48000)
+            
+            // HEv2 uses parametric stereo; In:Stereo, Out:Mono
+            applyChannelLayout(&audioOutputSettings, kAudioChannelLayoutTag_Stereo)
         }
         if audioFormat == kAudioFormatOpus {
-            // AFAIK, no parameter restriction
+            clampBitRate(&audioOutputSettings, 6000, 510000)
+            clampSampleRate(&audioOutputSettings, 8000, 48000)
         }
     }
     
+    /// Add AudioEncoder BitDepth Hint from decompressed source
+    /// - Parameters:
+    ///   - audioOutputSettings: audioOutputSettings (inout)
+    private func addBitDepthHint(_ audioOutputSettings:inout [String:Any]) {
+        let srcBitDepth = (audioDeviceDecompressedFormat[AVLinearPCMBitDepthKey] as! UInt32)
+        audioOutputSettings[AVEncoderBitDepthHintKey] = srcBitDepth
+    }
+    
+    /// Remove incompatible AudioEncoder BitRate KeyValue
+    /// - Parameters:
+    ///   - audioOutputSettings: audioOutputSettings (inout)
+    private func removeBitRate(_ audioOutputSettings:inout [String:Any]) {
+        audioOutputSettings.removeValue(forKey: AVEncoderBitRateKey)
+        audioOutputSettings.removeValue(forKey: AVEncoderBitRateStrategyKey)
+    }
+    
+    /// Clamp AudioEncoder BitRate
+    /// - Parameters:
+    ///   - audioOutputSettings: audioOutputSettings (inout)
+    ///   - lower: lower limit
+    ///   - upper: upper limit
+    private func clampBitRate(_ audioOutputSettings:inout [String:Any], _ lower:UInt32, _ upper:UInt32) {
+        var bitRate = audioOutputSettings[AVEncoderBitRateKey] as! UInt32
+        bitRate = min(max(bitRate, lower), upper)
+        audioOutputSettings[AVEncoderBitRateKey] = bitRate
+    }
+    
+    /// Clamp AudioEncoder SampleRate
+    /// - Parameters:
+    ///   - audioOutputSettings: audioOutputSettings (inout)
+    ///   - lower: lower limit
+    ///   - upper: upper limit
+    private func clampSampleRate(_ audioOutputSettings:inout [String:Any], _ lower:Double, _ upper:Double) {
+        var sampleRate = audioOutputSettings[AVSampleRateKey] as! Double
+        sampleRate = min(max(sampleRate, lower), upper)
+        audioOutputSettings[AVSampleRateKey] = sampleRate
+    }
+    
+    /// Apply specified AudioChannelLayoutTag for AudioEncoder
+    /// - Parameters:
+    ///   - audioOutputSettings: audioOutputSettings (inout)
+    ///   - tag: AudioChannelLayoutTag
+    private func applyChannelLayout(_ audioOutputSettings:inout [String:Any], _ tag:AudioChannelLayoutTag) {
+        assert(AudioChannelLayoutTag_GetNumberOfChannels(tag) > 0)
+        
+        //
+        var aclData:NSData? = nil
+        var numChannels:Int? = nil
+        if let avacl = AVAudioChannelLayout(layoutTag: tag) {
+            let mNumberChannelDescriptions = Int(avacl.layout.pointee.mNumberChannelDescriptions)
+            let aclPtr = avacl.layout
+            let aclSize = (MemoryLayout<UInt32>.size * 3 +
+                            MemoryLayout<AudioChannelDescription>.size * mNumberChannelDescriptions)
+            aclData = NSData(bytes: aclPtr, length: aclSize)
+            numChannels = Int(avacl.channelCount)
+        }
+        if let aclData = aclData, let numChannels = numChannels {
+            audioOutputSettings[AVChannelLayoutKey] = aclData
+            audioOutputSettings[AVNumberOfChannelsKey] = numChannels
+        }
+    }
 }
