@@ -3,7 +3,7 @@
 //  AVCaptureManager
 //
 //  Created by Takashi Mochizuki on 2022/12/12.
-//  Copyright © 2023 MyCometG3. All rights reserved.
+//  Copyright © 2022-2023 MyCometG3. All rights reserved.
 //
 
 /* This software is released under the MIT License, see LICENSE.txt. */
